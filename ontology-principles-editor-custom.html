@@ -1,0 +1,3702 @@
+<html lang="zh-CN"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>本体规划原则编辑器</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --ink: #202124;
+      --muted: #626866;
+      --line: #d9ddd7;
+      --soft: #eef4ef;
+      --accent: #087f76;
+      --accent-2: #b8642d;
+      --accent-3: #6f5aa8;
+      --danger: #b23b3b;
+      --shadow: 0 10px 28px rgba(38, 42, 40, 0.08);
+      --radius: 8px;
+      --sidebar: 288px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 7px;
+      min-height: 36px;
+      padding: 0 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease;
+      white-space: nowrap;
+    }
+
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button:active { transform: translateY(1px); }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.warn { color: var(--danger); }
+    button.icon { width: 36px; padding: 0; font-weight: 700; }
+
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100vh;
+      width: 100%;
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      min-width: 0;
+      padding: 20px 16px;
+      border-right: 1px solid var(--line);
+      background: #fbfbf8;
+      overflow: auto;
+    }
+
+    .brand {
+      display: grid;
+      gap: 6px;
+      padding: 4px 4px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand h1 {
+      font-size: 19px;
+      line-height: 1.25;
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    nav {
+      display: grid;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    nav button {
+      width: 100%;
+      justify-content: flex-start;
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+      padding: 9px 10px;
+      min-height: 38px;
+      text-align: left;
+      white-space: normal;
+    }
+
+    nav button.active {
+      background: var(--soft);
+      color: var(--accent);
+      border-color: #c9ddd9;
+      font-weight: 650;
+    }
+
+    .side-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .side-actions button { padding-inline: 8px; }
+
+    main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow-x: hidden;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 22px;
+      background: rgba(247, 247, 244, 0.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    .toolbar .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .toolbar .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .workspace {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      max-width: 1560px;
+      width: 100%;
+      margin: 0 auto;
+      min-width: 0;
+    }
+
+    body[data-active-tab="model"] .top-grid,
+    body[data-active-tab="graph"] .top-grid {
+      display: none;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, .8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fcfcfa;
+    }
+
+    .panel-header h2, .panel-header h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .panel-header small { color: var(--muted); }
+
+    .panel-body {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-title {
+      display: grid;
+      gap: 8px;
+    }
+
+    .hero-title [contenteditable] {
+      outline: none;
+      border-radius: 6px;
+      padding: 4px 6px;
+      margin: -4px -6px;
+    }
+
+    .hero-title [contenteditable]:focus,
+    [contenteditable]:focus {
+      box-shadow: 0 0 0 2px rgba(8, 127, 118, .18);
+      background: #fff;
+    }
+
+    .hero-title h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .hero-title p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    label.field {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    label.field input, label.field select, label.field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 7px;
+      min-height: 38px;
+      padding: 8px 10px;
+    }
+
+    label.field textarea {
+      min-height: 86px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      background: #f8faf8;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .metric strong {
+      font-size: 20px;
+      line-height: 1.1;
+      color: var(--accent);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: none;
+      gap: 8px;
+      padding: 12px 16px 0;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      overflow-x: auto;
+    }
+
+    .tabs button {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-bottom-color: transparent;
+      background: #f7f7f4;
+      min-height: 36px;
+    }
+
+    .tabs button.active {
+      background: #fff;
+      color: var(--accent);
+      border-color: var(--line);
+      border-bottom-color: #fff;
+      margin-bottom: -1px;
+      font-weight: 650;
+    }
+
+    .section-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .section-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      background: #fafbf9;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-title h3 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.35;
+    }
+
+    .section-content {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .editable {
+      min-height: 24px;
+      border-radius: 6px;
+      padding: 3px 5px;
+      margin: -3px -5px;
+      line-height: 1.65;
+      outline: none;
+    }
+
+    .note {
+      border-left: 4px solid var(--accent-2);
+      background: #fff8f1;
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+      line-height: 1.65;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      padding: 10px 11px;
+      vertical-align: top;
+      line-height: 1.55;
+      min-width: 80px;
+    }
+
+    th:last-child, td:last-child { border-right: none; }
+    tr:last-child td { border-bottom: none; }
+
+    th {
+      background: #eff6f5;
+      text-align: left;
+      color: #174f4b;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    td[contenteditable], th[contenteditable] {
+      outline: none;
+    }
+
+    .table-tools {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 8px;
+      min-height: 126px;
+    }
+
+    .step b {
+      color: var(--accent);
+      line-height: 1.35;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .check-group {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .check-group h3 {
+      margin: 0;
+      padding: 12px 14px;
+      background: #fafbf9;
+      border-bottom: 1px solid var(--line);
+      font-size: 15px;
+    }
+
+    .check-item {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      line-height: 1.55;
+    }
+
+    .check-item:last-child { border-bottom: none; }
+    .check-item input { margin-top: 4px; }
+
+    .templates {
+      display: grid;
+      grid-template-columns: minmax(280px, .8fr) minmax(0, 1.2fr);
+      gap: 16px;
+    }
+
+    .template-output {
+      min-height: 460px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      line-height: 1.55;
+      resize: vertical;
+      background: #242826;
+      color: #f3f7f3;
+      tab-size: 2;
+    }
+
+    .template-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .model-tools {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 2px;
+    }
+
+    .model-tools .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .model-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .model-board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+
+    .model-section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .guide-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .guide-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .guide-card > summary {
+      min-height: 46px;
+      padding: 12px 14px;
+      cursor: pointer;
+      background: #fafbf9;
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .guide-card:not([open]) > summary {
+      border-bottom: none;
+    }
+
+    .guide-body {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .model-section > header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 10px;
+      background: #fafbf9;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .model-section > header .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .model-section h3 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .record-list {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      max-height: calc(100vh - 250px);
+      overflow: auto;
+    }
+
+    .record-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .record-card > summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 10px;
+      cursor: pointer;
+      background: #fcfcfa;
+      line-height: 1.35;
+    }
+
+    .record-card > summary strong {
+      color: var(--accent);
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }
+
+    .record-card > summary span {
+      color: var(--muted);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+    }
+
+    .record-meta {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 1px;
+    }
+
+    .record-meta span {
+      border: 1px solid #d9e4e1;
+      background: #f6faf8;
+      border-radius: 999px;
+      padding: 2px 6px;
+      line-height: 1.25;
+    }
+
+    .record-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .record-form label.wide {
+      grid-column: span 2;
+    }
+
+    .record-form label.full {
+      grid-column: 1 / -1;
+    }
+
+    .record-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 10px 10px;
+    }
+
+    .record-form label.field {
+      gap: 4px;
+      font-size: 11px;
+    }
+
+    .record-form label.field input,
+    .record-form label.field select,
+    .record-form label.field textarea {
+      min-height: 30px;
+      padding: 5px 7px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .record-form label.field textarea {
+      min-height: 54px;
+    }
+
+    .model-preview {
+      margin-top: 2px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px 10px;
+    }
+
+    .model-preview summary {
+      cursor: pointer;
+      color: var(--accent);
+      font-weight: 650;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .model-preview .template-output {
+      min-height: 96px;
+      height: 112px;
+      max-height: 160px;
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.35;
+      resize: vertical;
+    }
+
+    .graph-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 12px;
+      min-height: calc(100vh - 128px);
+    }
+
+    .graph-stage {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f9fbfb;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto minmax(520px, 1fr);
+      min-width: 0;
+    }
+
+    .graph-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .graph-toolbar .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .graph-toolbar input[type="search"] {
+      min-height: 32px;
+      min-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 6px 9px;
+    }
+
+    .graph-toolbar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .graph-canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
+      touch-action: none;
+      cursor: grab;
+      background:
+        linear-gradient(rgba(8, 127, 118, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(8, 127, 118, .045) 1px, transparent 1px),
+        #f8fbfb;
+      background-size: 28px 28px;
+    }
+
+    .graph-canvas:active {
+      cursor: grabbing;
+    }
+
+    .graph-link {
+      fill: none;
+      stroke: #9daaa6;
+      stroke-width: 1.4;
+      marker-end: url(#graph-arrow);
+      cursor: pointer;
+      transition: opacity .16s ease, stroke-width .16s ease, stroke .16s ease;
+    }
+
+    .graph-link.related {
+      stroke: #627d78;
+      stroke-width: 1.9;
+      opacity: .86;
+    }
+
+    .graph-link.indirect {
+      stroke: #8aa39e;
+      stroke-width: 1.25;
+      opacity: .44;
+    }
+
+    .graph-link.selected {
+      stroke: var(--accent-2);
+      stroke-width: 2.8;
+      opacity: 1;
+    }
+
+    .graph-link.dimmed {
+      opacity: .24;
+      stroke-width: 1;
+    }
+
+    .graph-node.dimmed {
+      opacity: .24;
+    }
+
+    .graph-edge-label.dimmed {
+      opacity: .18;
+    }
+
+    .graph-node {
+      cursor: move;
+      transition: opacity .16s ease;
+    }
+
+    .graph-node circle {
+      fill: #fff;
+      stroke: var(--accent);
+      stroke-width: 2;
+      filter: drop-shadow(0 4px 8px rgba(32, 33, 36, .12));
+      transition: fill .16s ease, stroke .16s ease, stroke-width .16s ease;
+    }
+
+    .graph-node.layer-3 circle {
+      stroke: var(--accent-3);
+      fill: #fbf9ff;
+    }
+
+    .graph-node.selected circle {
+      stroke: var(--accent-2);
+      stroke-width: 3;
+      fill: #fff8f1;
+    }
+
+    .graph-node.related circle {
+      stroke-width: 2.4;
+      fill: #fbfffe;
+    }
+
+    .graph-node.indirect {
+      opacity: .48;
+    }
+
+    .graph-node.indirect circle {
+      stroke-width: 1.8;
+    }
+
+    .graph-label {
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+      font-size: 11px;
+      fill: var(--ink);
+      font-weight: 650;
+    }
+
+    .graph-label-sub {
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+      font-size: 9px;
+      fill: var(--muted);
+    }
+
+    .graph-edge-label {
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+      font-size: 9px;
+      fill: #59625f;
+      paint-order: stroke;
+      stroke: #f8fbfb;
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    .graph-edge-label.indirect {
+      opacity: .38;
+    }
+
+    .graph-inspector {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+    }
+
+    .graph-inspector header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fafbf9;
+      display: grid;
+      gap: 4px;
+    }
+
+    .graph-inspector h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .graph-inspector small {
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .graph-form {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      max-height: calc(100vh - 202px);
+      overflow: auto;
+    }
+
+    .graph-form label.field {
+      gap: 4px;
+      font-size: 11px;
+    }
+
+    .graph-form label.field input,
+    .graph-form label.field select,
+    .graph-form label.field textarea {
+      min-height: 30px;
+      padding: 5px 7px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .graph-form label.field textarea {
+      min-height: 66px;
+    }
+
+    .graph-empty {
+      padding: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .decision-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .decision-card h3 {
+      margin: 0;
+      padding: 12px 14px;
+      background: #fafbf9;
+      border-bottom: 1px solid var(--line);
+      font-size: 15px;
+    }
+
+    .decision-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .decision-body div {
+      padding: 12px;
+      line-height: 1.55;
+    }
+
+    .decision-body div + div { border-left: 1px solid var(--line); }
+
+    .decision-body b {
+      display: block;
+      color: var(--accent-3);
+      margin-bottom: 6px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      border: 1px solid #cddfdc;
+      background: #f4faf8;
+      color: #26635e;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #202824;
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 13px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 10;
+      max-width: min(420px, calc(100vw - 36px));
+      line-height: 1.45;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 1040px) {
+      .app { grid-template-columns: 1fr; }
+      aside {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .side-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .top-grid, .templates, .model-board, .graph-shell { grid-template-columns: 1fr; }
+      .workflow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .decision-grid { grid-template-columns: 1fr; }
+      .record-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .record-list { max-height: none; }
+      .graph-form { max-height: none; }
+    }
+
+    @media (max-width: 720px) {
+      .toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .toolbar .actions {
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+      }
+      .workspace { padding: 14px; }
+      nav, .side-actions, .config-grid, .metrics, .checklist-grid, .workflow {
+        grid-template-columns: 1fr;
+      }
+      .hero-title h2 { font-size: 22px; }
+      .decision-body { grid-template-columns: 1fr; }
+      .record-form, .record-form label.wide, .record-form label.full {
+        grid-template-columns: 1fr;
+        grid-column: 1 / -1;
+      }
+      .decision-body div + div {
+        border-left: none;
+        border-top: 1px solid var(--line);
+      }
+    }
+
+    @media print {
+      aside, .toolbar, .tabs, .table-tools, .section-title button, .template-form, .toast {
+        display: none !important;
+      }
+      .app, main, .workspace, .top-grid, .templates, .checklist-grid, .decision-grid {
+        display: block;
+      }
+      body { background: #fff; }
+      .panel, .section-card, .check-group, .decision-card {
+        box-shadow: none;
+        break-inside: avoid;
+        margin-bottom: 14px;
+      }
+    }
+  </style>
+</head>
+<body data-active-tab="content">
+  <div class="app">
+    <aside>
+      <div class="brand">
+        <h1>本体规划原则编辑器</h1>
+        <p>操作区用于维护模型数据；说明区只做查阅，导出保持 entities / attributes / relations 格式。</p>
+      </div>
+      <nav id="nav">
+        <button type="button" data-side-tab="model" class="">
+          操作区
+        </button>
+      
+        <button type="button" data-side-tab="graph" class="">
+          知识图谱
+        </button>
+      
+        <button type="button" data-side-tab="content" class="active">
+          说明区
+        </button>
+      
+        <button type="button" data-side-tab="decision" class="">
+          决策辅助
+        </button>
+      
+        <button type="button" data-side-tab="checklist" class="">
+          质量检查
+        </button>
+      
+        <button type="button" data-side-tab="template" class="">
+          建模模板
+        </button>
+      </nav>
+      <div class="side-actions">
+        <button type="button" id="saveBtn" title="立即保存">保存</button>
+        <button type="button" id="resetBtn" class="warn" title="恢复默认内容">重置</button>
+        <button type="button" id="importBtn" title="导入 JSON">导入</button>
+        <button type="button" id="printBtn" title="打印或另存 PDF">打印</button>
+      </div>
+    </aside>
+
+    <main>
+      <header class="toolbar">
+        <div class="meta">
+          <span class="status-dot"></span>
+          <span id="saveState">已载入本地内容</span>
+          <span id="projectLabel">奢侈品客户运营 · L2 行业包 · draft</span>
+        </div>
+        <div class="actions">
+          <button type="button" id="exportJsonBtn">导出 JSON</button>
+          <button type="button" id="exportMdBtn">导出 Markdown</button>
+          <button type="button" id="exportHtmlBtn" class="primary">导出 HTML</button>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <section class="top-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>模型数据操作台</h2>
+                <small>先创建实体，再补属性和关系</small>
+              </div>
+              <div class="pill-row">
+                <span class="pill">Entity</span>
+                <span class="pill">Attribute</span>
+                <span class="pill">Relation</span>
+                <span class="pill">JSON</span>
+              </div>
+            </div>
+            <div class="panel-body hero-title">
+              <h2 data-bind="title">本体建模协作规范</h2>
+              <p data-bind="subtitle">Multi-Industry Ontology Modeling Specification</p>
+              <p data-bind="goal">本规范目标：让每个行业专家都能快速构建自己的领域本体。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2>项目配置</h2>
+              <small>用于导出与模板生成</small>
+            </div>
+            <div class="panel-body">
+              <div class="config-grid">
+                <label class="field">行业/业务域
+                  <input data-config="domain" placeholder="例如：奢侈品客户运营">
+                </label>
+                <label class="field">适用层级
+                  <select data-config="layer">
+                    <option>L2 行业包</option>
+                    <option>L1 通用核心</option>
+                    <option>L3 企业层</option>
+                  </select>
+                </label>
+                <label class="field">负责人
+                  <input data-config="owner" placeholder="团队或个人">
+                </label>
+                <label class="field">版本状态
+                  <select data-config="status">
+                    <option>draft</option>
+                    <option>review</option>
+                    <option>published</option>
+                    <option>deprecated</option>
+                  </select>
+                </label>
+              </div>
+              <label class="field">项目说明
+                <textarea data-config="notes" placeholder="记录本项目的客户范围、术语边界、已知约束等。"></textarea>
+              </label>
+              <div class="metrics">
+                <div class="metric"><strong id="sectionCount">2</strong><span>实体数量</span></div>
+                <div class="metric"><strong id="checkProgress">0%</strong><span>检查完成</span></div>
+                <div class="metric"><strong id="lastSaved">默认</strong><span>保存状态</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="tabs" id="tabs">
+        <button type="button" data-tab="model" class="">操作区</button>
+      
+        <button type="button" data-tab="graph" class="">知识图谱</button>
+      
+        <button type="button" data-tab="content" class="active">说明区</button>
+      
+        <button type="button" data-tab="decision" class="">决策辅助</button>
+      
+        <button type="button" data-tab="checklist" class="">质量检查</button>
+      
+        <button type="button" data-tab="template" class="">建模模板</button>
+      </div>
+          <div class="panel-body">
+            <div id="modelPanel" class="hidden">
+        <div class="model-tools">
+          <div class="model-summary">
+            <span class="pill">实体 2</span>
+            <span class="pill">属性 1</span>
+            <span class="pill">关系 1</span>
+          </div>
+          <div class="actions">
+            <button type="button" data-add-model="entities">+ 实体</button>
+            <button type="button" data-add-model="attributes">+ 属性</button>
+            <button type="button" data-add-model="relations">+ 关系</button>
+            <button type="button" id="copyModelJsonBtn" class="primary">复制模型 JSON</button>
+          </div>
+        </div>
+        <div class="model-board">
+          
+        <section class="model-section">
+          <header>
+            <h3>Entities 实体</h3>
+            <div class="actions">
+              <small>2 条记录</small>
+              <button type="button" data-add-model="entities">+ 新增</button>
+            </div>
+          </header>
+          <div class="record-list">
+            
+        <details class="record-card">
+          <summary>
+            <strong>customer</strong>
+            <span>客户</span>
+            <div class="record-meta">
+              <span>layer 2</span><span>root</span><span>retail</span>
+            </div>
+          </summary>
+          <div class="record-form">
+            <label class="field ">ID
+        <input data-model-list="entities" data-model-index="0" data-model-key="id" value="customer" placeholder="小写字母+下划线，全局唯一，例如 customer">
+      </label><label class="field ">中文名称
+        <input data-model-list="entities" data-model-index="0" data-model-key="label_zh" value="客户" placeholder="必填">
+      </label><label class="field ">英文名称
+        <input data-model-list="entities" data-model-index="0" data-model-key="label_en" value="Customer" placeholder="必填；原文无英文则自动翻译">
+      </label><label class="field ">父类 ID
+        <input data-model-list="entities" data-model-index="0" data-model-key="parent" value="" placeholder="无父类留空，导出为 null">
+      </label><label class="field ">层级
+          <select data-model-list="entities" data-model-index="0" data-model-key="layer">
+            <option value="">不确定</option>
+            <option value="2" selected="">2 行业级别</option>
+            <option value="3">3 企业级别</option>
+          </select>
+        </label><label class="field ">抽象类
+          <select data-model-list="entities" data-model-index="0" data-model-key="abstract">
+            <option value="false" selected="">false</option>
+            <option value="true">true</option>
+          </select>
+        </label><label class="field full">业务含义描述
+          <textarea data-model-list="entities" data-model-index="0" data-model-key="description" placeholder="无法判断留空">购买或使用企业产品与服务的个人或组织。</textarea>
+        </label><label class="field ">别名/缩写
+        <input data-model-list="entities" data-model-index="0" data-model-key="alias" value="" placeholder="多个用英文逗号分隔">
+      </label><label class="field ">Owner
+          <input data-model-list="entities" data-model-index="0" data-model-key="owner" value="" disabled="" placeholder="固定导出为空字符串">
+        </label><label class="field ">业务域
+        <input data-model-list="entities" data-model-index="0" data-model-key="business_domain" value="retail" placeholder="英文小写，如 retail / finance / manufacturing">
+      </label>
+          </div>
+          <div class="record-actions">
+            <button type="button" class="warn" data-remove-model="entities" data-remove-index="0">删除记录</button>
+          </div>
+        </details>
+      
+        <details class="record-card">
+          <summary>
+            <strong>client_advisor</strong>
+            <span>客户顾问</span>
+            <div class="record-meta">
+              <span>layer 2</span><span>root</span><span>retail</span>
+            </div>
+          </summary>
+          <div class="record-form">
+            <label class="field ">ID
+        <input data-model-list="entities" data-model-index="1" data-model-key="id" value="client_advisor" placeholder="小写字母+下划线，全局唯一，例如 customer">
+      </label><label class="field ">中文名称
+        <input data-model-list="entities" data-model-index="1" data-model-key="label_zh" value="客户顾问" placeholder="必填">
+      </label><label class="field ">英文名称
+        <input data-model-list="entities" data-model-index="1" data-model-key="label_en" value="Client Advisor" placeholder="必填；原文无英文则自动翻译">
+      </label><label class="field ">父类 ID
+        <input data-model-list="entities" data-model-index="1" data-model-key="parent" value="" placeholder="无父类留空，导出为 null">
+      </label><label class="field ">层级
+          <select data-model-list="entities" data-model-index="1" data-model-key="layer">
+            <option value="">不确定</option>
+            <option value="2" selected="">2 行业级别</option>
+            <option value="3">3 企业级别</option>
+          </select>
+        </label><label class="field ">抽象类
+          <select data-model-list="entities" data-model-index="1" data-model-key="abstract">
+            <option value="false" selected="">false</option>
+            <option value="true">true</option>
+          </select>
+        </label><label class="field full">业务含义描述
+          <textarea data-model-list="entities" data-model-index="1" data-model-key="description" placeholder="无法判断留空">负责维护客户关系、提供咨询与服务的门店或销售人员。</textarea>
+        </label><label class="field ">别名/缩写
+        <input data-model-list="entities" data-model-index="1" data-model-key="alias" value="SA,sales_advisor" placeholder="多个用英文逗号分隔">
+      </label><label class="field ">Owner
+          <input data-model-list="entities" data-model-index="1" data-model-key="owner" value="" disabled="" placeholder="固定导出为空字符串">
+        </label><label class="field ">业务域
+        <input data-model-list="entities" data-model-index="1" data-model-key="business_domain" value="retail" placeholder="英文小写，如 retail / finance / manufacturing">
+      </label>
+          </div>
+          <div class="record-actions">
+            <button type="button" class="warn" data-remove-model="entities" data-remove-index="1">删除记录</button>
+          </div>
+        </details>
+      
+          </div>
+        </section>
+      
+        <section class="model-section">
+          <header>
+            <h3>Attributes 属性</h3>
+            <div class="actions">
+              <small>1 条记录</small>
+              <button type="button" data-add-model="attributes">+ 新增</button>
+            </div>
+          </header>
+          <div class="record-list">
+            
+        <details class="record-card">
+          <summary>
+            <strong>customer_name</strong>
+            <span>客户姓名</span>
+            <div class="record-meta">
+              <span>customer</span><span>STRING</span><span>required</span>
+            </div>
+          </summary>
+          <div class="record-form">
+            <label class="field ">ID
+        <input data-model-list="attributes" data-model-index="0" data-model-key="id" value="customer_name" placeholder="小写字母+下划线，全局唯一，例如 customer_name">
+      </label><label class="field ">中文属性名
+        <input data-model-list="attributes" data-model-index="0" data-model-key="label_zh" value="客户姓名" placeholder="必填">
+      </label><label class="field ">英文属性名
+        <input data-model-list="attributes" data-model-index="0" data-model-key="label_en" value="Customer Name" placeholder="必填">
+      </label><label class="field ">所属实体 ID
+        <input data-model-list="attributes" data-model-index="0" data-model-key="owned_class" value="customer" placeholder="必填">
+      </label><label class="field ">衍生来源类 ID
+        <input data-model-list="attributes" data-model-index="0" data-model-key="derived_from" value="customer" placeholder="填入该类的 id">
+      </label><label class="field full">业务含义
+          <textarea data-model-list="attributes" data-model-index="0" data-model-key="description" placeholder="属性的业务含义">客户在业务系统中的姓名或显示名称。</textarea>
+        </label><label class="field ">别名
+        <input data-model-list="attributes" data-model-index="0" data-model-key="alias" value="name" placeholder="多个用英文逗号分隔">
+      </label><label class="field ">数据类型
+          <select data-model-list="attributes" data-model-index="0" data-model-key="data_type">
+            <option value="STRING" selected="">STRING</option><option value="INTEGER">INTEGER</option><option value="FLOAT">FLOAT</option><option value="BOOLEAN">BOOLEAN</option><option value="DATE">DATE</option><option value="DATETIME">DATETIME</option><option value="TEXT">TEXT</option>
+          </select>
+        </label><label class="field ">是否必填
+          <select data-model-list="attributes" data-model-index="0" data-model-key="required">
+            <option value="false">false</option>
+            <option value="true" selected="">true</option>
+          </select>
+        </label><label class="field ">是否唯一
+          <select data-model-list="attributes" data-model-index="0" data-model-key="unique">
+            <option value="false" selected="">false</option>
+            <option value="true">true</option>
+          </select>
+        </label><label class="field wide">枚举值
+        <input data-model-list="attributes" data-model-index="0" data-model-key="enum_values" value="" placeholder="枚举类型用英文逗号分隔">
+      </label><label class="field ">单位
+        <input data-model-list="attributes" data-model-index="0" data-model-key="unit" value="" placeholder="如 $ / kg / %">
+      </label><label class="field ">是否可为空
+          <select data-model-list="attributes" data-model-index="0" data-model-key="nullable">
+            <option value="false" selected="">false</option>
+            <option value="true">true</option>
+          </select>
+        </label><label class="field wide">示例值
+        <input data-model-list="attributes" data-model-index="0" data-model-key="sample_value" value="张三" placeholder="多个用英文逗号分隔">
+      </label>
+          </div>
+          <div class="record-actions">
+            <button type="button" class="warn" data-remove-model="attributes" data-remove-index="0">删除记录</button>
+          </div>
+        </details>
+      
+          </div>
+        </section>
+      
+        <section class="model-section">
+          <header>
+            <h3>Relations 关系</h3>
+            <div class="actions">
+              <small>1 条记录</small>
+              <button type="button" data-add-model="relations">+ 新增</button>
+            </div>
+          </header>
+          <div class="record-list">
+            
+        <details class="record-card">
+          <summary>
+            <strong>customer_advisor</strong>
+            <span>分配顾问</span>
+            <div class="record-meta">
+              <span>customer -&gt; client_advisor</span><span>MANY_TO_ONE</span><span>layer 2</span>
+            </div>
+          </summary>
+          <div class="record-form">
+            <label class="field ">ID
+        <input data-model-list="relations" data-model-index="0" data-model-key="id" value="customer_advisor" placeholder="小写字母+下划线，全局唯一，例如 order_customer">
+      </label><label class="field ">关系中文名称
+        <input data-model-list="relations" data-model-index="0" data-model-key="label_zh" value="分配顾问" placeholder="如 属于 / 包含 / 产生">
+      </label><label class="field ">关系英文名称
+        <input data-model-list="relations" data-model-index="0" data-model-key="label_en" value="Assigned Advisor" placeholder="必填">
+      </label><label class="field ">层级
+          <select data-model-list="relations" data-model-index="0" data-model-key="layer">
+            <option value="">不确定</option>
+            <option value="2" selected="">2 行业级别</option>
+            <option value="3">3 企业级别</option>
+          </select>
+        </label><label class="field ">Parent
+          <input data-model-list="relations" data-model-index="0" data-model-key="parent" value="null" disabled="" placeholder="固定导出为 null">
+        </label><label class="field ">抽象关系
+          <select data-model-list="relations" data-model-index="0" data-model-key="abstract">
+            <option value="false" selected="">false</option>
+            <option value="true">true</option>
+          </select>
+        </label><label class="field full">业务含义
+          <textarea data-model-list="relations" data-model-index="0" data-model-key="description" placeholder="无法判断留空">客户与负责服务该客户的顾问之间的业务关系。</textarea>
+        </label><label class="field ">别名
+        <input data-model-list="relations" data-model-index="0" data-model-key="alias" value="assigned_to" placeholder="多个用英文逗号分隔">
+      </label><label class="field ">基数
+          <select data-model-list="relations" data-model-index="0" data-model-key="cardinality">
+            <option value="ONE_TO_ONE">ONE_TO_ONE</option><option value="ONE_TO_MANY">ONE_TO_MANY</option><option value="MANY_TO_MANY">MANY_TO_MANY</option><option value="MANY_TO_ONE" selected="">MANY_TO_ONE</option>
+          </select>
+        </label><label class="field ">起点实体 ID
+        <input data-model-list="relations" data-model-index="0" data-model-key="source_class" value="customer" placeholder="必填">
+      </label><label class="field ">终点实体 ID
+        <input data-model-list="relations" data-model-index="0" data-model-key="target_class" value="client_advisor" placeholder="必填">
+      </label><label class="field ">业务域
+        <input data-model-list="relations" data-model-index="0" data-model-key="business_domain" value="retail" placeholder="英文小写">
+      </label><label class="field ">起点关联属性 ID
+        <input data-model-list="relations" data-model-index="0" data-model-key="source_class_attribute" value="" placeholder="无法确定留空">
+      </label><label class="field ">终点关联属性 ID
+        <input data-model-list="relations" data-model-index="0" data-model-key="target_class_attribute" value="" placeholder="无法确定留空">
+      </label>
+          </div>
+          <div class="record-actions">
+            <button type="button" class="warn" data-remove-model="relations" data-remove-index="0">删除记录</button>
+          </div>
+        </details>
+      
+          </div>
+        </section>
+      
+        </div>
+        <details class="model-preview">
+          <summary>查看当前导出 JSON 预览</summary>
+          <textarea id="modelJsonPreview" class="template-output" readonly="" spellcheck="false"></textarea>
+        </details>
+      </div>
+            <div id="graphPanel" class="hidden">
+        <div class="graph-shell">
+          <section class="graph-stage">
+            <div class="graph-toolbar">
+              <div class="actions">
+                <input type="search" id="graphSearch" value="" placeholder="搜索 entity / 中文名 / relation">
+                <button type="button" data-graph-zoom="in">+</button>
+                <button type="button" data-graph-zoom="out">-</button>
+                <button type="button" data-graph-reset="">重置视图</button>
+                <button type="button" data-add-model="entities">新增实体</button>
+                <button type="button" data-add-model="relations">新增关系</button>
+                <label><input type="checkbox" id="graphShowLabels" checked=""> 关系标签</label>
+              </div>
+              <small>2 个实体 · 1 条关系</small>
+            </div>
+            <svg id="graphSvg" class="graph-canvas" role="img" aria-label="实体关系知识图谱" viewBox="0 0 960 680" data-graph-bound="true">
+        <defs>
+          <marker id="graph-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#9daaa6"></path>
+          </marker>
+        </defs>
+        <g id="graphViewport" transform="translate(0 0) scale(1)">
+          <g>
+          <path class="graph-link  related  " data-graph-relation="0" d="M 480.0 260.0 L 480.0 248.0"></path>
+          <text class="graph-edge-label  " x="480.0" y="247.0">分配顾问</text>
+        </g>
+          <g>
+          <g class="graph-node layer-2  related  " data-graph-entity="1" transform="translate(480.0 162.0)">
+            <title>客户顾问 · client_advisor · 1 条关系</title>
+            <circle r="78.0"></circle>
+            <text class="graph-label" y="-5">客户顾问</text>
+            <text class="graph-label-sub" y="12">client_advisor</text>
+          </g>
+        
+          <g class="graph-node layer-2 selected   " data-graph-entity="0" transform="translate(480.0 344.0)">
+            <title>客户 · customer · 1 条关系</title>
+            <circle r="78.0"></circle>
+            <text class="graph-label" y="-5">客户</text>
+            <text class="graph-label-sub" y="12">customer</text>
+          </g>
+        </g>
+        </g>
+      </svg>
+          </section>
+          <aside class="graph-inspector">
+            <header>
+              <h3 id="graphInspectorTitle">客户</h3>
+              <small id="graphInspectorSubtitle">customer</small>
+            </header>
+            <div id="graphInspectorBody" class="graph-form"><label class="field">ID<input data-graph-list="entities" data-graph-index="0" data-graph-key="id" value="customer" placeholder="小写字母+下划线，全局唯一，例如 customer"></label><label class="field">中文名称<input data-graph-list="entities" data-graph-index="0" data-graph-key="label_zh" value="客户" placeholder="必填"></label><label class="field">英文名称<input data-graph-list="entities" data-graph-index="0" data-graph-key="label_en" value="Customer" placeholder="必填；原文无英文则自动翻译"></label><label class="field">父类 ID<input data-graph-list="entities" data-graph-index="0" data-graph-key="parent" value="" placeholder="无父类留空，导出为 null"></label><label class="field">层级<select data-graph-list="entities" data-graph-index="0" data-graph-key="layer"><option value="">不确定</option><option value="2" selected="">2 行业级别</option><option value="3">3 企业级别</option></select></label><label class="field">抽象类<select data-graph-list="entities" data-graph-index="0" data-graph-key="abstract"><option value="false" selected="">false</option><option value="true">true</option></select></label><label class="field">业务含义描述<textarea data-graph-list="entities" data-graph-index="0" data-graph-key="description" placeholder="无法判断留空">购买或使用企业产品与服务的个人或组织。</textarea></label><label class="field">别名/缩写<input data-graph-list="entities" data-graph-index="0" data-graph-key="alias" value="" placeholder="多个用英文逗号分隔"></label><label class="field">Owner<input data-graph-list="entities" data-graph-index="0" data-graph-key="owner" value="" disabled="" placeholder="固定导出为空字符串"></label><label class="field">业务域<input data-graph-list="entities" data-graph-index="0" data-graph-key="business_domain" value="retail" placeholder="英文小写，如 retail / finance / manufacturing"></label></div>
+          </aside>
+        </div>
+      </div>
+            <div id="contentPanel" class="">
+        <div class="note">
+          这里集中放置建模原则和规范说明，仅用于查阅。新增、编辑、导出模型数据请回到「操作区」。
+        </div>
+        <div class="guide-list">
+          
+            <details class="guide-card" open="">
+              <summary>第1部分：5分钟了解本体框架</summary>
+              <div class="guide-body">
+                <h3>1.1 什么是三层本体架构?</h3><p>我们的本体体系像搭积木一样分为三层，每一层都有明确的职责：</p>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                
+                  <tr>
+                    <th>层级</th><th>职责</th><th>包含什么</th><th>谁负责</th>
+                  </tr>
+                
+                  <tr>
+                    <td>L1 通用核心</td><td>所有行业共享的基础概念</td><td>组织、人员、流程、事件、数据</td><td>架构团队</td>
+                  </tr>
+                
+                  <tr>
+                    <td>L2 行业包</td><td>特定行业的专业术语和业务逻辑</td><td>奢侈品客户运营、金融风险、制造质量...</td><td>行业专家</td>
+                  </tr>
+                
+                  <tr>
+                    <td>L3 企业层</td><td>客户的内部术语和系统映射</td><td>别名、本地规则、CRM字段映射</td><td>项目团队</td>
+                  </tr>
+                
+              </tbody>
+            </table>
+          </div>
+        <div class="note">行业专家快速上手要点：只需要专注 L2 行业包，不用担心 L1 的技术细节；像填表格一样定义概念，系统会自动处理技术格式；有现成的行业包模板可以参考和复用。</div><h3>1.2 你需要定义的7类对象</h3><p>不是所有东西都建成 Class，要根据对象性质选择合适的类型：</p>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                
+                  <tr>
+                    <th>对象类型</th><th>什么时候用</th><th>举例</th><th>不要用于</th>
+                  </tr>
+                
+                  <tr>
+                    <td>Class（类）</td><td>稳定的业务概念，有明确边界</td><td>VIP客户、预约、精品店</td><td>状态值、具体门店</td>
+                  </tr>
+                
+                  <tr>
+                    <td>Property（属性）</td><td>概念之间的关系或特征</td><td>分配给顾问、年消费额</td><td>随意造新关系词</td>
+                  </tr>
+                
+                  <tr>
+                    <td>ConceptScheme（受控词表）</td><td>枚举值、分类体系</td><td>客户等级（钻石/白金/金卡）</td><td>每个等级建成类</td>
+                  </tr>
+                
+                  <tr>
+                    <td>Alias（别名）</td><td>企业内部叫法不同</td><td>大客户 → VIP客户</td><td>建新类</td>
+                  </tr>
+                
+                  <tr>
+                    <td>SystemMapping（系统映射）</td><td>关联外部系统字段</td><td>Salesforce.Account → 客户</td><td>放在概念定义里</td>
+                  </tr>
+                
+                  <tr>
+                    <td>RuleOverlay（规则覆盖）</td><td>企业特定的业务规则</td><td>VIP客户必须有专属顾问</td><td>修改原定义</td>
+                  </tr>
+                
+                  <tr>
+                    <td>Instance（实例）</td><td>具体的、唯一的对象</td><td>上海南京西路店、张三顾问</td><td>建成类</td>
+                  </tr>
+                
+              </tbody>
+            </table>
+          </div>
+        
+              </div>
+            </details>
+          
+            <details class="guide-card">
+              <summary>第2部分：目标和流程</summary>
+              <div class="guide-body">
+                <h3>2.1 规范目标与适用范围</h3><p>本规范用于指导多团队在统一的三层框架下创建、维护、发布和导入 Ontology。目标不是强迫所有团队使用同一业务词表，而是确保所有扩展都沿用一致的语义骨架、命名规则、元数据与生命周期机制。</p>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                
+                  <tr>
+                    <th>适用层级</th><th>L1 通用核心、L2 行业/业务域 Add-on、L3 企业本地化与映射层</th>
+                  </tr>
+                
+                  <tr>
+                    <td>推荐语义标准</td><td>OWL 2</td>
+                  </tr>
+                
+                  <tr>
+                    <td>主编写格式</td><td>Turtle</td>
+                  </tr>
+                
+                  <tr>
+                    <td>交换格式</td><td>JSON-LD</td>
+                  </tr>
+                
+                  <tr>
+                    <td>系统导入格式</td><td>Canonical Import JSON</td>
+                  </tr>
+                
+                  <tr>
+                    <td>建议校验</td><td>SHACL 或系统内置规则引擎</td>
+                  </tr>
+                
+              </tbody>
+            </table>
+          </div>
+        <h3>2.2 协作工作流</h3><p>从想法到发布，遵循以下5步流程：</p><div class="workflow">
+          
+            <div class="step">
+              <b>起草阶段</b>
+              <p>填写概念定义工作表，列出所有关键术语、关系和业务规则。</p>
+            </div>
+          
+            <div class="step">
+              <b>内部评审</b>
+              <p>检查命名规范、层级关系、是否有重复或冲突。</p>
+            </div>
+          
+            <div class="step">
+              <b>格式转换</b>
+              <p>将 Excel/JSON 转为标准 Turtle 和导入包格式。</p>
+            </div>
+          
+            <div class="step">
+              <b>测试导入</b>
+              <p>在测试环境验证导入包，确保没有错误和冲突。</p>
+            </div>
+          
+            <div class="step">
+              <b>正式发布</b>
+              <p>发布到生产库，标注版本号，通知所有使用方。</p>
+            </div>
+          
+        </div>
+              </div>
+            </details>
+          
+            <details class="guide-card">
+              <summary>第3部分：动手建模速查表</summary>
+              <div class="guide-body">
+                <h3>3.1 定义一个类（Class）</h3><p>填表式定义，每个类需要以下字段：</p>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                
+                  <tr>
+                    <th>字段</th><th>必填?</th><th>说明/示例</th>
+                  </tr>
+                
+                  <tr>
+                    <td>id</td><td>必填</td><td>唯一标识，用 PascalCase 命名。例：LuxuryCustomer</td>
+                  </tr>
+                
+                  <tr>
+                    <td>prefLabel</td><td>必填</td><td>首选显示名称（可多语言）。例：'奢侈品客户'@zh, 'Luxury Customer'@en</td>
+                  </tr>
+                
+                  <tr>
+                    <td>definition</td><td>必填</td><td>清晰的业务定义，1-3句话。例：在奢侈品牌购买高价值商品的个人消费者</td>
+                  </tr>
+                
+                  <tr>
+                    <td>parent</td><td>必填</td><td>父类 ID，来自 L1 或已发布的 L2。例：Customer（来自 L1）</td>
+                  </tr>
+                
+                  <tr>
+                    <td>layer</td><td>必填</td><td>固定填：L2</td>
+                  </tr>
+                
+                  <tr>
+                    <td>status</td><td>必填</td><td>draft | review | published | deprecated</td>
+                  </tr>
+                
+                  <tr>
+                    <td>owner</td><td>必填</td><td>负责人或团队。例：luxury-practice-team</td>
+                  </tr>
+                
+                  <tr>
+                    <td>example</td><td>推荐</td><td>具体示例，帮助他人理解。例：在 Hermès 年消费超过100万元的 VIP 会员</td>
+                  </tr>
+                
+              </tbody>
+            </table>
+          </div>
+        <div class="note">完整示例：id: LuxuryCustomer；prefLabel: '奢侈品客户'@zh, 'Luxury Customer'@en；definition: 在奢侈品牌购买高价值商品的个人消费者，通常具有较高消费能力和品牌忠诚度；parent: Customer；layer: L2；status: draft；owner: luxury-practice-team；example: 在 Hermès 年消费超过100万元的 VIP 会员。</div><h3>3.2 定义属性（Property）</h3><p>ObjectProperty 连接两个概念，例如 assignedToAdvisor（客户 → 顾问）。DatatypeProperty 表示标量值，例如 annualSpendAmount（年消费额，数字）。</p>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                
+                  <tr>
+                    <th>ObjectProperty 字段</th><th>说明</th>
+                  </tr>
+                
+                  <tr>
+                    <td>id</td><td>camelCase 命名，例：assignedToAdvisor</td>
+                  </tr>
+                
+                  <tr>
+                    <td>domain</td><td>起点类，例：LuxuryCustomer</td>
+                  </tr>
+                
+                  <tr>
+                    <td>range</td><td>目标类，例：ClientAdvisor</td>
+                  </tr>
+                
+              </tbody>
+            </table>
+          </div>
+        
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                
+                  <tr>
+                    <th>DatatypeProperty 字段</th><th>说明</th>
+                  </tr>
+                
+                  <tr>
+                    <td>id</td><td>camelCase 命名，例：annualSpendAmount</td>
+                  </tr>
+                
+                  <tr>
+                    <td>domain</td><td>所属类，例：LuxuryCustomer</td>
+                  </tr>
+                
+                  <tr>
+                    <td>datatype</td><td>数据类型：string | integer | decimal | date | boolean</td>
+                  </tr>
+                
+              </tbody>
+            </table>
+          </div>
+        <h3>3.3 受控词表（ConceptScheme）</h3><p>用于定义枚举值和分类体系，比如客户等级、产品类别等。</p><div class="note">示例：CustomerTierScheme；prefLabel: '客户等级体系'@zh；Concepts: DiamondTier（钻石客户，年消费超过500万元），PlatinumTier（白金客户，年消费100万-500万元）。</div>
+              </div>
+            </details>
+          
+        </div>
+      </div>
+            <div id="checklistPanel" class="hidden"></div>
+            <div id="templatePanel" class="hidden"></div>
+            <div id="decisionPanel" class="hidden"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <input id="fileInput" class="hidden" type="file" accept="application/json,.json">
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "ontology-principles-editor-v1";
+
+    const defaultData = {
+      "title": "本体建模协作规范",
+      "subtitle": "Multi-Industry Ontology Modeling Specification",
+      "goal": "本规范目标：让每个行业专家都能快速构建自己的领域本体。",
+      "config": {
+            "domain": "奢侈品客户运营",
+            "layer": "L2 行业包",
+            "owner": "luxury-practice-team",
+            "status": "draft",
+            "notes": ""
+      },
+      "model": {
+            "entities": [
+                  {
+                        "id": "customer",
+                        "label_zh": "客户",
+                        "label_en": "Customer",
+                        "parent": null,
+                        "layer": 2,
+                        "abstract": false,
+                        "description": "购买或使用企业产品与服务的个人或组织。",
+                        "alias": "",
+                        "owner": "",
+                        "business_domain": "retail"
+                  },
+                  {
+                        "id": "client_advisor",
+                        "label_zh": "客户顾问",
+                        "label_en": "Client Advisor",
+                        "parent": null,
+                        "layer": 2,
+                        "abstract": false,
+                        "description": "负责维护客户关系、提供咨询与服务的门店或销售人员。",
+                        "alias": "SA,sales_advisor",
+                        "owner": "",
+                        "business_domain": "retail"
+                  }
+            ],
+            "attributes": [
+                  {
+                        "id": "customer_name",
+                        "label_zh": "客户姓名",
+                        "label_en": "Customer Name",
+                        "owned_class": "customer",
+                        "derived_from": "customer",
+                        "description": "客户在业务系统中的姓名或显示名称。",
+                        "alias": "name",
+                        "data_type": "STRING",
+                        "required": true,
+                        "unique": false,
+                        "enum_values": "",
+                        "unit": "",
+                        "nullable": false,
+                        "sample_value": "张三"
+                  }
+            ],
+            "relations": [
+                  {
+                        "id": "customer_advisor",
+                        "label_zh": "分配顾问",
+                        "label_en": "Assigned Advisor",
+                        "layer": 2,
+                        "parent": null,
+                        "abstract": false,
+                        "description": "客户与负责服务该客户的顾问之间的业务关系。",
+                        "alias": "assigned_to",
+                        "cardinality": "MANY_TO_ONE",
+                        "source_class": "customer",
+                        "target_class": "client_advisor",
+                        "business_domain": "retail",
+                        "source_class_attribute": "",
+                        "target_class_attribute": ""
+                  }
+            ]
+      },
+      "sections": [
+            {
+                  "id": "framework",
+                  "title": "第1部分：5分钟了解本体框架",
+                  "blocks": [
+                        {
+                              "type": "heading",
+                              "text": "1.1 什么是三层本体架构?"
+                        },
+                        {
+                              "type": "paragraph",
+                              "text": "我们的本体体系像搭积木一样分为三层，每一层都有明确的职责："
+                        },
+                        {
+                              "type": "table",
+                              "rows": [
+                                    [
+                                          "层级",
+                                          "职责",
+                                          "包含什么",
+                                          "谁负责"
+                                    ],
+                                    [
+                                          "L1 通用核心",
+                                          "所有行业共享的基础概念",
+                                          "组织、人员、流程、事件、数据",
+                                          "架构团队"
+                                    ],
+                                    [
+                                          "L2 行业包",
+                                          "特定行业的专业术语和业务逻辑",
+                                          "奢侈品客户运营、金融风险、制造质量...",
+                                          "行业专家"
+                                    ],
+                                    [
+                                          "L3 企业层",
+                                          "客户的内部术语和系统映射",
+                                          "别名、本地规则、CRM字段映射",
+                                          "项目团队"
+                                    ]
+                              ]
+                        },
+                        {
+                              "type": "note",
+                              "text": "行业专家快速上手要点：只需要专注 L2 行业包，不用担心 L1 的技术细节；像填表格一样定义概念，系统会自动处理技术格式；有现成的行业包模板可以参考和复用。"
+                        },
+                        {
+                              "type": "heading",
+                              "text": "1.2 你需要定义的7类对象"
+                        },
+                        {
+                              "type": "paragraph",
+                              "text": "不是所有东西都建成 Class，要根据对象性质选择合适的类型："
+                        },
+                        {
+                              "type": "table",
+                              "rows": [
+                                    [
+                                          "对象类型",
+                                          "什么时候用",
+                                          "举例",
+                                          "不要用于"
+                                    ],
+                                    [
+                                          "Class（类）",
+                                          "稳定的业务概念，有明确边界",
+                                          "VIP客户、预约、精品店",
+                                          "状态值、具体门店"
+                                    ],
+                                    [
+                                          "Property（属性）",
+                                          "概念之间的关系或特征",
+                                          "分配给顾问、年消费额",
+                                          "随意造新关系词"
+                                    ],
+                                    [
+                                          "ConceptScheme（受控词表）",
+                                          "枚举值、分类体系",
+                                          "客户等级（钻石/白金/金卡）",
+                                          "每个等级建成类"
+                                    ],
+                                    [
+                                          "Alias（别名）",
+                                          "企业内部叫法不同",
+                                          "大客户 → VIP客户",
+                                          "建新类"
+                                    ],
+                                    [
+                                          "SystemMapping（系统映射）",
+                                          "关联外部系统字段",
+                                          "Salesforce.Account → 客户",
+                                          "放在概念定义里"
+                                    ],
+                                    [
+                                          "RuleOverlay（规则覆盖）",
+                                          "企业特定的业务规则",
+                                          "VIP客户必须有专属顾问",
+                                          "修改原定义"
+                                    ],
+                                    [
+                                          "Instance（实例）",
+                                          "具体的、唯一的对象",
+                                          "上海南京西路店、张三顾问",
+                                          "建成类"
+                                    ]
+                              ]
+                        }
+                  ]
+            },
+            {
+                  "id": "process",
+                  "title": "第2部分：目标和流程",
+                  "blocks": [
+                        {
+                              "type": "heading",
+                              "text": "2.1 规范目标与适用范围"
+                        },
+                        {
+                              "type": "paragraph",
+                              "text": "本规范用于指导多团队在统一的三层框架下创建、维护、发布和导入 Ontology。目标不是强迫所有团队使用同一业务词表，而是确保所有扩展都沿用一致的语义骨架、命名规则、元数据与生命周期机制。"
+                        },
+                        {
+                              "type": "table",
+                              "rows": [
+                                    [
+                                          "适用层级",
+                                          "L1 通用核心、L2 行业/业务域 Add-on、L3 企业本地化与映射层"
+                                    ],
+                                    [
+                                          "推荐语义标准",
+                                          "OWL 2"
+                                    ],
+                                    [
+                                          "主编写格式",
+                                          "Turtle"
+                                    ],
+                                    [
+                                          "交换格式",
+                                          "JSON-LD"
+                                    ],
+                                    [
+                                          "系统导入格式",
+                                          "Canonical Import JSON"
+                                    ],
+                                    [
+                                          "建议校验",
+                                          "SHACL 或系统内置规则引擎"
+                                    ]
+                              ]
+                        },
+                        {
+                              "type": "heading",
+                              "text": "2.2 协作工作流"
+                        },
+                        {
+                              "type": "paragraph",
+                              "text": "从想法到发布，遵循以下5步流程："
+                        },
+                        {
+                              "type": "workflow",
+                              "steps": [
+                                    [
+                                          "起草阶段",
+                                          "填写概念定义工作表，列出所有关键术语、关系和业务规则。"
+                                    ],
+                                    [
+                                          "内部评审",
+                                          "检查命名规范、层级关系、是否有重复或冲突。"
+                                    ],
+                                    [
+                                          "格式转换",
+                                          "将 Excel/JSON 转为标准 Turtle 和导入包格式。"
+                                    ],
+                                    [
+                                          "测试导入",
+                                          "在测试环境验证导入包，确保没有错误和冲突。"
+                                    ],
+                                    [
+                                          "正式发布",
+                                          "发布到生产库，标注版本号，通知所有使用方。"
+                                    ]
+                              ]
+                        }
+                  ]
+            },
+            {
+                  "id": "quick-reference",
+                  "title": "第3部分：动手建模速查表",
+                  "blocks": [
+                        {
+                              "type": "heading",
+                              "text": "3.1 定义一个类（Class）"
+                        },
+                        {
+                              "type": "paragraph",
+                              "text": "填表式定义，每个类需要以下字段："
+                        },
+                        {
+                              "type": "table",
+                              "rows": [
+                                    [
+                                          "字段",
+                                          "必填?",
+                                          "说明/示例"
+                                    ],
+                                    [
+                                          "id",
+                                          "必填",
+                                          "唯一标识，用 PascalCase 命名。例：LuxuryCustomer"
+                                    ],
+                                    [
+                                          "prefLabel",
+                                          "必填",
+                                          "首选显示名称（可多语言）。例：'奢侈品客户'@zh, 'Luxury Customer'@en"
+                                    ],
+                                    [
+                                          "definition",
+                                          "必填",
+                                          "清晰的业务定义，1-3句话。例：在奢侈品牌购买高价值商品的个人消费者"
+                                    ],
+                                    [
+                                          "parent",
+                                          "必填",
+                                          "父类 ID，来自 L1 或已发布的 L2。例：Customer（来自 L1）"
+                                    ],
+                                    [
+                                          "layer",
+                                          "必填",
+                                          "固定填：L2"
+                                    ],
+                                    [
+                                          "status",
+                                          "必填",
+                                          "draft | review | published | deprecated"
+                                    ],
+                                    [
+                                          "owner",
+                                          "必填",
+                                          "负责人或团队。例：luxury-practice-team"
+                                    ],
+                                    [
+                                          "example",
+                                          "推荐",
+                                          "具体示例，帮助他人理解。例：在 Hermès 年消费超过100万元的 VIP 会员"
+                                    ]
+                              ]
+                        },
+                        {
+                              "type": "note",
+                              "text": "完整示例：id: LuxuryCustomer；prefLabel: '奢侈品客户'@zh, 'Luxury Customer'@en；definition: 在奢侈品牌购买高价值商品的个人消费者，通常具有较高消费能力和品牌忠诚度；parent: Customer；layer: L2；status: draft；owner: luxury-practice-team；example: 在 Hermès 年消费超过100万元的 VIP 会员。"
+                        },
+                        {
+                              "type": "heading",
+                              "text": "3.2 定义属性（Property）"
+                        },
+                        {
+                              "type": "paragraph",
+                              "text": "ObjectProperty 连接两个概念，例如 assignedToAdvisor（客户 → 顾问）。DatatypeProperty 表示标量值，例如 annualSpendAmount（年消费额，数字）。"
+                        },
+                        {
+                              "type": "table",
+                              "rows": [
+                                    [
+                                          "ObjectProperty 字段",
+                                          "说明"
+                                    ],
+                                    [
+                                          "id",
+                                          "camelCase 命名，例：assignedToAdvisor"
+                                    ],
+                                    [
+                                          "domain",
+                                          "起点类，例：LuxuryCustomer"
+                                    ],
+                                    [
+                                          "range",
+                                          "目标类，例：ClientAdvisor"
+                                    ]
+                              ]
+                        },
+                        {
+                              "type": "table",
+                              "rows": [
+                                    [
+                                          "DatatypeProperty 字段",
+                                          "说明"
+                                    ],
+                                    [
+                                          "id",
+                                          "camelCase 命名，例：annualSpendAmount"
+                                    ],
+                                    [
+                                          "domain",
+                                          "所属类，例：LuxuryCustomer"
+                                    ],
+                                    [
+                                          "datatype",
+                                          "数据类型：string | integer | decimal | date | boolean"
+                                    ]
+                              ]
+                        },
+                        {
+                              "type": "heading",
+                              "text": "3.3 受控词表（ConceptScheme）"
+                        },
+                        {
+                              "type": "paragraph",
+                              "text": "用于定义枚举值和分类体系，比如客户等级、产品类别等。"
+                        },
+                        {
+                              "type": "note",
+                              "text": "示例：CustomerTierScheme；prefLabel: '客户等级体系'@zh；Concepts: DiamondTier（钻石客户，年消费超过500万元），PlatinumTier（白金客户，年消费100万-500万元）。"
+                        }
+                  ]
+            }
+      ],
+      "decisions": [
+            {
+                  "title": "Class 还是 ConceptScheme?",
+                  "leftTitle": "建成 Class",
+                  "left": "有独立属性和规则；可以有子类扩展；不是简单枚举。例：VIPCustomer（有专属服务规则）。",
+                  "rightTitle": "建成 ConceptScheme",
+                  "right": "固定枚举值；分类标签；没有复杂规则。例：客户等级（钻石/白金/金卡）。"
+            },
+            {
+                  "title": "Subclass 还是 Alias?",
+                  "leftTitle": "建成 Subclass",
+                  "left": "新增了业务语义；有特殊属性或规则；可能会被继承。例：PremiumCustomer extends Customer。",
+                  "rightTitle": "建成 Alias",
+                  "right": "仅仅是叫法不同；企业内部术语；本质是同一个概念。例：大客户 → Customer。"
+            },
+            {
+                  "title": "Class 还是 Instance?",
+                  "leftTitle": "建成 Class",
+                  "left": "描述一类事物；有多个实例；可复用的概念。例：Boutique、ClientAdvisor。",
+                  "rightTitle": "建成 Instance",
+                  "right": "具体的、唯一的对象；实际运营数据；参考示例。例：上海南京西路店、张三顾问。"
+            }
+      ],
+      "checklist": [
+            {
+                  "title": "4.1 命名规范检查",
+                  "items": [
+                        "所有 Class 使用 PascalCase（例：LuxuryCustomer）",
+                        "所有 Property 使用 camelCase（例：assignedToAdvisor）",
+                        "名称清晰表达业务含义，没有缩写或技术术语",
+                        "没有重复概念（搜索同义词确认）"
+                  ]
+            },
+            {
+                  "title": "4.2 结构与层级检查",
+                  "items": [
+                        "每个 Class 都有明确的 parent，且 parent 来自 L1 或已发布 L2",
+                        "所有 ObjectProperty 都定义了 domain 和 range",
+                        "层级深度不超过3-4层，避免维护困难",
+                        "没有循环继承（A → B → A）"
+                  ]
+            },
+            {
+                  "title": "4.3 元数据完整性检查",
+                  "items": [
+                        "每个概念都有 prefLabel（中英文）",
+                        "每个概念都有清晰的 definition（1-3句话）",
+                        "标注了 layer（L2）和 status（draft/published）",
+                        "指定了 owner（负责团队或个人）",
+                        "提供了 example（至少核心概念有）"
+                  ]
+            },
+            {
+                  "title": "4.4 业务语义检查",
+                  "items": [
+                        "定义准确反映行业共识，没有个人臆断",
+                        "示例真实可信，来自实际业务场景",
+                        "覆盖了核心业务流程的关键概念",
+                        "没有遗漏重要的行业术语"
+                  ]
+            }
+      ],
+      "checked": {},
+      "template": {
+            "type": "Class",
+            "id": "LuxuryCustomer",
+            "zh": "奢侈品客户",
+            "en": "Luxury Customer",
+            "definition": "在奢侈品牌购买高价值商品的个人消费者，通常具有较高消费能力和品牌忠诚度。",
+            "parent": "Customer",
+            "propertyKind": "ObjectProperty",
+            "domain": "LuxuryCustomer",
+            "range": "ClientAdvisor",
+            "datatype": "decimal",
+            "example": "在 Hermès 年消费超过100万元的 VIP 会员"
+      },
+      "graphPositions": {}
+};
+
+    let data = loadData();
+    let activeTab = "model";
+    let currentSection = data.sections[0]?.id || "";
+    let saveTimer = null;
+    let graphState = {
+      selectedType: "entity",
+      selectedIndex: 0,
+      scale: 1,
+      x: 0,
+      y: 0,
+      showLabels: true,
+      query: ""
+    };
+    let graphDrag = null;
+
+    const tabs = [
+      ["model", "操作区"],
+      ["graph", "知识图谱"],
+      ["content", "说明区"],
+      ["decision", "决策辅助"],
+      ["checklist", "质量检查"],
+      ["template", "建模模板"]
+    ];
+
+    const modelSchemas = {
+      entities: [
+        ["id", "ID", "text", "小写字母+下划线，全局唯一，例如 customer"],
+        ["label_zh", "中文名称", "text", "必填"],
+        ["label_en", "英文名称", "text", "必填；原文无英文则自动翻译"],
+        ["parent", "父类 ID", "text", "无父类留空，导出为 null"],
+        ["layer", "层级", "layer", "行业级别填 2，企业级别填 3"],
+        ["abstract", "抽象类", "boolean", "抽象类 true，有具体实例 false"],
+        ["description", "业务含义描述", "textarea", "无法判断留空"],
+        ["alias", "别名/缩写", "text", "多个用英文逗号分隔"],
+        ["owner", "Owner", "fixed", "固定导出为空字符串"],
+        ["business_domain", "业务域", "text", "英文小写，如 retail / finance / manufacturing"]
+      ],
+      attributes: [
+        ["id", "ID", "text", "小写字母+下划线，全局唯一，例如 customer_name"],
+        ["label_zh", "中文属性名", "text", "必填"],
+        ["label_en", "英文属性名", "text", "必填"],
+        ["owned_class", "所属实体 ID", "text", "必填"],
+        ["derived_from", "衍生来源类 ID", "text", "填入该类的 id"],
+        ["description", "业务含义", "textarea", "属性的业务含义"],
+        ["alias", "别名", "text", "多个用英文逗号分隔"],
+        ["data_type", "数据类型", "dataType", "STRING / INTEGER / FLOAT / BOOLEAN / DATE / DATETIME / TEXT"],
+        ["required", "是否必填", "boolean", "无法判断填 false"],
+        ["unique", "是否唯一", "boolean", "无法判断填 false"],
+        ["enum_values", "枚举值", "text", "枚举类型用英文逗号分隔"],
+        ["unit", "单位", "text", "如 $ / kg / %"],
+        ["nullable", "是否可为空", "boolean", "无法判断填 true"],
+        ["sample_value", "示例值", "text", "多个用英文逗号分隔"]
+      ],
+      relations: [
+        ["id", "ID", "text", "小写字母+下划线，全局唯一，例如 order_customer"],
+        ["label_zh", "关系中文名称", "text", "如 属于 / 包含 / 产生"],
+        ["label_en", "关系英文名称", "text", "必填"],
+        ["layer", "层级", "layer", "关联 layer=2 的类填 2，企业级别填 3"],
+        ["parent", "Parent", "null", "固定导出为 null"],
+        ["abstract", "抽象关系", "boolean", "抽象关系 true，否则 false"],
+        ["description", "业务含义", "textarea", "无法判断留空"],
+        ["alias", "别名", "text", "多个用英文逗号分隔"],
+        ["cardinality", "基数", "cardinality", "ONE_TO_ONE / ONE_TO_MANY / MANY_TO_MANY / MANY_TO_ONE"],
+        ["source_class", "起点实体 ID", "text", "必填"],
+        ["target_class", "终点实体 ID", "text", "必填"],
+        ["business_domain", "业务域", "text", "英文小写"],
+        ["source_class_attribute", "起点关联属性 ID", "text", "无法确定留空"],
+        ["target_class_attribute", "终点关联属性 ID", "text", "无法确定留空"]
+      ]
+    };
+
+    const modelLabels = {
+      entities: "Entities 实体",
+      attributes: "Attributes 属性",
+      relations: "Relations 关系"
+    };
+
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function loadData() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return clone(defaultData);
+        return mergeDefaults(clone(defaultData), JSON.parse(stored));
+      } catch (error) {
+        console.warn(error);
+        return clone(defaultData);
+      }
+    }
+
+    function mergeDefaults(base, stored) {
+      const incomingModel = stored.model || (
+        stored.entities || stored.attributes || stored.relations
+          ? { entities: stored.entities || [], attributes: stored.attributes || [], relations: stored.relations || [] }
+          : {}
+      );
+      const { entities, attributes, relations, ...storedRest } = stored;
+      return {
+        ...base,
+        ...storedRest,
+        config: { ...base.config, ...(stored.config || {}) },
+        model: {
+          entities: incomingModel.entities || base.model.entities,
+          attributes: incomingModel.attributes || base.model.attributes,
+          relations: incomingModel.relations || base.model.relations
+        },
+        template: { ...base.template, ...(stored.template || {}) },
+        checked: stored.checked || {}
+      };
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderAll() {
+      renderNav();
+      renderTabs();
+      bindTopFields();
+      renderActivePanel();
+      updateMetrics();
+      updateProjectLabel();
+    }
+
+    function renderNav() {
+      const nav = document.querySelector("#nav");
+      nav.innerHTML = tabs.map(([id, label]) => `
+        <button type="button" data-side-tab="${id}" class="${activeTab === id ? "active" : ""}">
+          ${escapeHtml(label)}
+        </button>
+      `).join("");
+    }
+
+    function renderTabs() {
+      document.querySelector("#tabs").innerHTML = tabs.map(([id, label]) => `
+        <button type="button" data-tab="${id}" class="${activeTab === id ? "active" : ""}">${label}</button>
+      `).join("");
+    }
+
+    function bindTopFields() {
+      document.querySelector('[data-bind="title"]').textContent = data.title;
+      document.querySelector('[data-bind="subtitle"]').textContent = data.subtitle;
+      document.querySelector('[data-bind="goal"]').textContent = data.goal;
+      document.querySelectorAll("[data-config]").forEach(input => {
+        input.value = data.config[input.dataset.config] || "";
+      });
+    }
+
+    function renderActivePanel() {
+      document.body.dataset.activeTab = activeTab;
+      document.querySelector("#contentPanel").classList.toggle("hidden", activeTab !== "content");
+      document.querySelector("#modelPanel").classList.toggle("hidden", activeTab !== "model");
+      document.querySelector("#graphPanel").classList.toggle("hidden", activeTab !== "graph");
+      document.querySelector("#decisionPanel").classList.toggle("hidden", activeTab !== "decision");
+      document.querySelector("#checklistPanel").classList.toggle("hidden", activeTab !== "checklist");
+      document.querySelector("#templatePanel").classList.toggle("hidden", activeTab !== "template");
+      if (activeTab === "content") renderContent();
+      if (activeTab === "model") renderModel();
+      if (activeTab === "graph") renderGraph();
+      if (activeTab === "decision") renderDecisions();
+      if (activeTab === "checklist") renderChecklist();
+      if (activeTab === "template") renderTemplate();
+      renderNav();
+    }
+
+    function renderContent() {
+      document.querySelector("#contentPanel").innerHTML = `
+        <div class="note">
+          这里集中放置建模原则和规范说明，仅用于查阅。新增、编辑、导出模型数据请回到「操作区」。
+        </div>
+        <div class="guide-list">
+          ${data.sections.map((section, sectionIndex) => `
+            <details class="guide-card" ${sectionIndex === 0 ? "open" : ""}>
+              <summary>${escapeHtml(section.title)}</summary>
+              <div class="guide-body">
+                ${section.blocks.map(renderGuideBlock).join("")}
+              </div>
+            </details>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderGuideBlock(block) {
+      if (block.type === "heading") return `<h3>${escapeHtml(block.text)}</h3>`;
+      if (block.type === "paragraph") return `<p>${escapeHtml(block.text)}</p>`;
+      if (block.type === "note") return `<div class="note">${escapeHtml(block.text)}</div>`;
+      if (block.type === "workflow") {
+        return `<div class="workflow">
+          ${block.steps.map(step => `
+            <div class="step">
+              <b>${escapeHtml(step[0])}</b>
+              <p>${escapeHtml(step[1])}</p>
+            </div>
+          `).join("")}
+        </div>`;
+      }
+      if (block.type === "table") {
+        const rows = block.rows || [];
+        return `
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                ${rows.map((row, rowIndex) => `
+                  <tr>
+                    ${row.map(cell => {
+                      const tag = rowIndex === 0 ? "th" : "td";
+                      return `<${tag}>${escapeHtml(cell)}</${tag}>`;
+                    }).join("")}
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+      return "";
+    }
+
+    function renderBlock(block, index) {
+      if (block.type === "heading") {
+        return `<h3 class="editable" contenteditable="true" data-block="${index}" data-field="text">${escapeHtml(block.text)}</h3>`;
+      }
+      if (block.type === "paragraph") {
+        return `<p class="editable" contenteditable="true" data-block="${index}" data-field="text">${escapeHtml(block.text)}</p>`;
+      }
+      if (block.type === "note") {
+        return `<div class="note editable" contenteditable="true" data-block="${index}" data-field="text">${escapeHtml(block.text)}</div>`;
+      }
+      if (block.type === "workflow") {
+        return `<div class="workflow" data-block="${index}">
+          ${block.steps.map((step, stepIndex) => `
+            <div class="step">
+              <b contenteditable="true" data-step="${stepIndex}" data-step-field="0">${escapeHtml(step[0])}</b>
+              <p contenteditable="true" data-step="${stepIndex}" data-step-field="1">${escapeHtml(step[1])}</p>
+            </div>
+          `).join("")}
+        </div>`;
+      }
+      if (block.type === "table") {
+        const rows = block.rows || [];
+        return `
+          <div data-block="${index}">
+            <div class="table-wrap">
+              <table>
+                <tbody>
+                  ${rows.map((row, rowIndex) => `
+                    <tr>
+                      ${row.map((cell, cellIndex) => {
+                        const tag = rowIndex === 0 ? "th" : "td";
+                        return `<${tag} contenteditable="true" data-row="${rowIndex}" data-cell="${cellIndex}">${escapeHtml(cell)}</${tag}>`;
+                      }).join("")}
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+            <div class="table-tools">
+              <button type="button" data-add-row="${index}">+ 行</button>
+              <button type="button" data-add-col="${index}">+ 列</button>
+              <button type="button" data-delete-block="${index}" class="warn">删除表格</button>
+            </div>
+          </div>
+        `;
+      }
+      return "";
+    }
+
+    function renderModel() {
+      document.querySelector("#modelPanel").innerHTML = `
+        <div class="model-tools">
+          <div class="model-summary">
+            <span class="pill">实体 ${data.model.entities.length}</span>
+            <span class="pill">属性 ${data.model.attributes.length}</span>
+            <span class="pill">关系 ${data.model.relations.length}</span>
+          </div>
+          <div class="actions">
+            <button type="button" data-add-model="entities">+ 实体</button>
+            <button type="button" data-add-model="attributes">+ 属性</button>
+            <button type="button" data-add-model="relations">+ 关系</button>
+            <button type="button" id="copyModelJsonBtn" class="primary">复制模型 JSON</button>
+          </div>
+        </div>
+        <div class="model-board">
+          ${["entities", "attributes", "relations"].map(renderModelSection).join("")}
+        </div>
+        <details class="model-preview">
+          <summary>查看当前导出 JSON 预览</summary>
+          <textarea id="modelJsonPreview" class="template-output" readonly spellcheck="false"></textarea>
+        </details>
+      `;
+      updateModelPreview();
+    }
+
+    function renderModelSection(listName) {
+      const records = data.model[listName] || [];
+      return `
+        <section class="model-section">
+          <header>
+            <h3>${modelLabels[listName]}</h3>
+            <div class="actions">
+              <small>${records.length} 条记录</small>
+              <button type="button" data-add-model="${listName}">+ 新增</button>
+            </div>
+          </header>
+          <div class="record-list">
+            ${records.length ? records.map((record, index) => renderModelRecord(listName, record, index)).join("") : `<p class="editable">暂无记录，点击上方按钮新增。</p>`}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderModelRecord(listName, record, index) {
+      const title = record.id || `new_${listName}_${index + 1}`;
+      const subtitle = record.label_zh || record.label_en || modelLabels[listName];
+      return `
+        <details class="record-card">
+          <summary>
+            <strong>${escapeHtml(title)}</strong>
+            <span>${escapeHtml(subtitle)}</span>
+            <div class="record-meta">
+              ${getRecordMeta(listName, record).map(item => `<span>${escapeHtml(item)}</span>`).join("")}
+            </div>
+          </summary>
+          <div class="record-form">
+            ${modelSchemas[listName].map(field => renderModelField(listName, index, record, field)).join("")}
+          </div>
+          <div class="record-actions">
+            <button type="button" class="warn" data-remove-model="${listName}" data-remove-index="${index}">删除记录</button>
+          </div>
+        </details>
+      `;
+    }
+
+    function getRecordMeta(listName, record) {
+      if (listName === "entities") {
+        return [
+          `layer ${record.layer || "?"}`,
+          record.parent ? `parent ${record.parent}` : "root",
+          record.business_domain || "domain?"
+        ];
+      }
+      if (listName === "attributes") {
+        return [
+          record.owned_class || "class?",
+          record.data_type || "STRING",
+          record.required ? "required" : "optional"
+        ];
+      }
+      return [
+        `${record.source_class || "source?"} -> ${record.target_class || "target?"}`,
+        record.cardinality || "cardinality?",
+        `layer ${record.layer || "?"}`
+      ];
+    }
+
+    function renderModelField(listName, index, record, field) {
+      const [key, label, type, hint] = field;
+      const value = record[key];
+      const common = `data-model-list="${listName}" data-model-index="${index}" data-model-key="${key}"`;
+      const wide = type === "textarea" ? "full" : ["description", "enum_values", "sample_value"].includes(key) ? "wide" : "";
+      if (type === "textarea") {
+        return `<label class="field ${wide}">${escapeHtml(label)}
+          <textarea ${common} placeholder="${escapeHtml(hint)}">${escapeHtml(value || "")}</textarea>
+        </label>`;
+      }
+      if (type === "boolean") {
+        return `<label class="field ${wide}">${escapeHtml(label)}
+          <select ${common}>
+            <option value="false" ${value === false || value === "false" || value === undefined ? "selected" : ""}>false</option>
+            <option value="true" ${value === true || value === "true" ? "selected" : ""}>true</option>
+          </select>
+        </label>`;
+      }
+      if (type === "layer") {
+        return `<label class="field ${wide}">${escapeHtml(label)}
+          <select ${common}>
+            <option value="" ${value === "" || value === undefined || value === null ? "selected" : ""}>不确定</option>
+            <option value="2" ${Number(value) === 2 ? "selected" : ""}>2 行业级别</option>
+            <option value="3" ${Number(value) === 3 ? "selected" : ""}>3 企业级别</option>
+          </select>
+        </label>`;
+      }
+      if (type === "dataType") {
+        const options = ["STRING", "INTEGER", "FLOAT", "BOOLEAN", "DATE", "DATETIME", "TEXT"];
+        return `<label class="field ${wide}">${escapeHtml(label)}
+          <select ${common}>
+            ${options.map(option => `<option value="${option}" ${value === option ? "selected" : ""}>${option}</option>`).join("")}
+          </select>
+        </label>`;
+      }
+      if (type === "cardinality") {
+        const options = ["ONE_TO_ONE", "ONE_TO_MANY", "MANY_TO_MANY", "MANY_TO_ONE"];
+        return `<label class="field ${wide}">${escapeHtml(label)}
+          <select ${common}>
+            ${options.map(option => `<option value="${option}" ${value === option ? "selected" : ""}>${option}</option>`).join("")}
+          </select>
+        </label>`;
+      }
+      if (type === "fixed") {
+        return `<label class="field ${wide}">${escapeHtml(label)}
+          <input ${common} value="" disabled placeholder="${escapeHtml(hint)}" />
+        </label>`;
+      }
+      if (type === "null") {
+        return `<label class="field ${wide}">${escapeHtml(label)}
+          <input ${common} value="null" disabled placeholder="${escapeHtml(hint)}" />
+        </label>`;
+      }
+      return `<label class="field ${wide}">${escapeHtml(label)}
+        <input ${common} value="${escapeHtml(value === null || value === undefined ? "" : value)}" placeholder="${escapeHtml(hint)}" />
+      </label>`;
+    }
+
+    function renderGraph() {
+      ensureGraphSelection();
+      const stats = `${data.model.entities.length} 个实体 · ${data.model.relations.length} 条关系`;
+      document.querySelector("#graphPanel").innerHTML = `
+        <div class="graph-shell">
+          <section class="graph-stage">
+            <div class="graph-toolbar">
+              <div class="actions">
+                <input type="search" id="graphSearch" value="${escapeHtml(graphState.query)}" placeholder="搜索 entity / 中文名 / relation" />
+                <button type="button" data-graph-zoom="in">+</button>
+                <button type="button" data-graph-zoom="out">-</button>
+                <button type="button" data-graph-reset>重置视图</button>
+                <button type="button" data-add-model="entities">新增实体</button>
+                <button type="button" data-add-model="relations">新增关系</button>
+                <label><input type="checkbox" id="graphShowLabels" ${graphState.showLabels ? "checked" : ""} /> 关系标签</label>
+              </div>
+              <small>${escapeHtml(stats)}</small>
+            </div>
+            <svg id="graphSvg" class="graph-canvas" role="img" aria-label="实体关系知识图谱"></svg>
+          </section>
+          <aside class="graph-inspector">
+            <header>
+              <h3 id="graphInspectorTitle"></h3>
+              <small id="graphInspectorSubtitle"></small>
+            </header>
+            <div id="graphInspectorBody" class="graph-form"></div>
+          </aside>
+        </div>
+      `;
+      drawGraph();
+      renderGraphInspector();
+    }
+
+    function ensureGraphSelection() {
+      if (graphState.selectedType === "relation") {
+        if (!data.model.relations[graphState.selectedIndex]) {
+          graphState.selectedType = "entity";
+          graphState.selectedIndex = 0;
+        }
+      } else if (!data.model.entities[graphState.selectedIndex]) {
+        graphState.selectedType = data.model.relations.length ? "relation" : "entity";
+        graphState.selectedIndex = 0;
+      }
+    }
+
+    function getGraphLayout(width, height) {
+      data.graphPositions ||= {};
+      const entities = data.model.entities || [];
+      const relations = data.model.relations || [];
+      const degree = new Map(entities.map(entity => [entity.id, 0]));
+      relations.forEach(relation => {
+        degree.set(relation.source_class, (degree.get(relation.source_class) || 0) + 1);
+        degree.set(relation.target_class, (degree.get(relation.target_class) || 0) + 1);
+      });
+      const maxDegree = Math.max(1, ...entities.map(entity => degree.get(entity.id) || 0));
+      const radii = new Map(entities.map(entity => {
+        const relationCount = degree.get(entity.id) || 0;
+        const radius = relationCount === 0 ? 30 : 30 + (relationCount / maxDegree) * 48;
+        return [entity.id, radius];
+      }));
+      const sorted = [...entities].sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0));
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radiusBase = Math.max(210, Math.min(width, height) * 0.28);
+      const positions = new Map();
+      sorted.forEach((entity, index) => {
+        const saved = data.graphPositions[entity.id];
+        if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+          positions.set(entity.id, { x: saved.x, y: saved.y });
+          return;
+        }
+        if (index === 0) {
+          positions.set(entity.id, { x: centerX, y: centerY });
+          return;
+        }
+        const ring = Math.floor((index - 1) / 14);
+        const ringIndex = (index - 1) % 14;
+        const ringCount = Math.min(14, Math.max(1, sorted.length - 1 - ring * 14));
+        const angle = (Math.PI * 2 * ringIndex / ringCount) - Math.PI / 2 + ring * 0.23;
+        const radius = radiusBase + ring * 150;
+        positions.set(entity.id, {
+          x: centerX + Math.cos(angle) * radius,
+          y: centerY + Math.sin(angle) * radius
+        });
+      });
+
+      relaxGraphPositions(positions, sorted, radii, width, height);
+      return { positions, degree, radii };
+    }
+
+    function relaxGraphPositions(positions, entities, radii, width, height) {
+      if (entities.length < 2) return;
+      const margin = 84;
+      for (let iteration = 0; iteration < 58; iteration += 1) {
+        for (let i = 0; i < entities.length; i += 1) {
+          const a = entities[i];
+          const posA = positions.get(a.id);
+          if (!posA) continue;
+          for (let j = i + 1; j < entities.length; j += 1) {
+            const b = entities[j];
+            const posB = positions.get(b.id);
+            if (!posB) continue;
+            let dx = posB.x - posA.x;
+            let dy = posB.y - posA.y;
+            let distance = Math.hypot(dx, dy);
+            if (distance < 0.01) {
+              dx = Math.cos((i + 1) * 2.17) * 0.01;
+              dy = Math.sin((j + 1) * 1.79) * 0.01;
+              distance = Math.hypot(dx, dy);
+            }
+            const minDistance = (radii.get(a.id) || 34) + (radii.get(b.id) || 34) + 26;
+            if (distance >= minDistance) continue;
+            const push = (minDistance - distance) / 2;
+            const nx = dx / distance;
+            const ny = dy / distance;
+            posA.x -= nx * push;
+            posA.y -= ny * push;
+            posB.x += nx * push;
+            posB.y += ny * push;
+          }
+        }
+        entities.forEach(entity => {
+          const pos = positions.get(entity.id);
+          const radius = radii.get(entity.id) || 34;
+          if (!pos) return;
+          pos.x = Math.max(margin + radius, Math.min(width - margin - radius, pos.x));
+          pos.y = Math.max(margin + radius, Math.min(height - margin - radius, pos.y));
+        });
+      }
+    }
+
+    function drawGraph() {
+      const svg = document.querySelector("#graphSvg");
+      if (!svg) return;
+      const box = svg.getBoundingClientRect();
+      const entities = data.model.entities || [];
+      const relations = data.model.relations || [];
+      const complexity = Math.max(1, entities.length + relations.length * 0.45);
+      const width = Math.max(960, Math.round(box.width || 960), Math.ceil(Math.sqrt(complexity) * 132));
+      const height = Math.max(680, Math.round(box.height || 620), Math.ceil(Math.sqrt(complexity) * 112));
+      const { positions, degree, radii } = getGraphLayout(width, height);
+      const selectedEntity = graphState.selectedType === "entity" ? data.model.entities[graphState.selectedIndex] : null;
+      const selectedRelation = graphState.selectedType === "relation" ? data.model.relations[graphState.selectedIndex] : null;
+      const selectedId = selectedEntity?.id || "";
+      const neighborIds = new Set([selectedId]);
+      const indirectIds = new Set();
+      const selectedRelationEndpoints = new Set();
+      if (selectedRelation) {
+        neighborIds.add(selectedRelation.source_class);
+        neighborIds.add(selectedRelation.target_class);
+        selectedRelationEndpoints.add(selectedRelation.source_class);
+        selectedRelationEndpoints.add(selectedRelation.target_class);
+      }
+      relations.forEach(relation => {
+        if (selectedId && (relation.source_class === selectedId || relation.target_class === selectedId)) {
+          neighborIds.add(relation.source_class);
+          neighborIds.add(relation.target_class);
+        }
+      });
+      relations.forEach(relation => {
+        const touchesDirectNeighbor = selectedId && (neighborIds.has(relation.source_class) || neighborIds.has(relation.target_class));
+        const touchesSelectedRelation = selectedRelation && (selectedRelationEndpoints.has(relation.source_class) || selectedRelationEndpoints.has(relation.target_class));
+        if ((touchesDirectNeighbor || touchesSelectedRelation) && !neighborIds.has(relation.source_class)) indirectIds.add(relation.source_class);
+        if ((touchesDirectNeighbor || touchesSelectedRelation) && !neighborIds.has(relation.target_class)) indirectIds.add(relation.target_class);
+      });
+      const query = graphState.query.trim().toLowerCase();
+      const matchEntity = entity => !query || [entity.id, entity.label_zh, entity.label_en, entity.alias].some(value => String(value || "").toLowerCase().includes(query));
+      const matchRelation = relation => !query || [relation.id, relation.label_zh, relation.label_en, relation.source_class, relation.target_class].some(value => String(value || "").toLowerCase().includes(query));
+      const isFiltering = Boolean(query);
+      const transform = `translate(${graphState.x} ${graphState.y}) scale(${graphState.scale})`;
+      const linkMarkup = relations.map((relation, index) => {
+        const source = positions.get(relation.source_class);
+        const target = positions.get(relation.target_class);
+        if (!source || !target) return "";
+        const selected = graphState.selectedType === "relation" && graphState.selectedIndex === index;
+        const connectedToSelected = selectedId && (relation.source_class === selectedId || relation.target_class === selectedId);
+        const sharesSelectedRelationEndpoint = selectedRelation && (selectedRelationEndpoints.has(relation.source_class) || selectedRelationEndpoints.has(relation.target_class));
+        const connectedToNeighbor = selectedId && (neighborIds.has(relation.source_class) || neighborIds.has(relation.target_class));
+        const related = selected || connectedToSelected;
+        const indirect = !related && (connectedToNeighbor || sharesSelectedRelationEndpoint);
+        const dimmed = isFiltering ? !matchRelation(relation) : selectedRelation ? !(selected || indirect) : selectedId ? !(connectedToSelected || indirect) : false;
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const distance = Math.max(1, Math.hypot(dx, dy));
+        const sourceRadius = (radii.get(relation.source_class) || 34) + 6;
+        const targetRadius = (radii.get(relation.target_class) || 34) + 8;
+        const sx = source.x + dx / distance * sourceRadius;
+        const sy = source.y + dy / distance * sourceRadius;
+        const tx = target.x - dx / distance * targetRadius;
+        const ty = target.y - dy / distance * targetRadius;
+        const midX = (sx + tx) / 2;
+        const midY = (sy + ty) / 2;
+        const priority = selected ? 4 : related ? 3 : indirect ? 2 : dimmed ? 0 : 1;
+        const html = `
+          <path class="graph-link ${selected ? "selected" : ""} ${related ? "related" : ""} ${indirect ? "indirect" : ""} ${dimmed ? "dimmed" : ""}" data-graph-relation="${index}" d="M ${sx.toFixed(1)} ${sy.toFixed(1)} L ${tx.toFixed(1)} ${ty.toFixed(1)}"></path>
+          ${graphState.showLabels ? `<text class="graph-edge-label ${indirect ? "indirect" : ""} ${dimmed ? "dimmed" : ""}" x="${midX.toFixed(1)}" y="${(midY - 7).toFixed(1)}">${escapeHtml(relation.label_zh || relation.id)}</text>` : ""}
+        `;
+        return { priority, html };
+      }).sort((a, b) => a.priority - b.priority).map(item => item.html).join("");
+      const nodeMarkup = entities.map((entity, index) => {
+        const pos = positions.get(entity.id) || { x: width / 2, y: height / 2 };
+        const selected = graphState.selectedType === "entity" && graphState.selectedIndex === index;
+        const related = !selected && neighborIds.has(entity.id);
+        const indirect = !selected && !related && indirectIds.has(entity.id);
+        const dimmed = isFiltering ? !matchEntity(entity) : (selectedId || selectedRelation) && !(neighborIds.has(entity.id) || indirect);
+        const radius = radii.get(entity.id) || 34;
+        const labelLimit = Math.max(8, Math.min(18, Math.round(radius / 3.4) + 3));
+        const label = entity.label_zh || entity.label_en || entity.id;
+        const clippedLabel = label.length > labelLimit ? `${label.slice(0, labelLimit - 1)}…` : label;
+        const shortId = entity.id.length > labelLimit + 5 ? `${entity.id.slice(0, labelLimit + 3)}…` : entity.id;
+        const priority = selected ? 4 : related ? 3 : indirect ? 2 : dimmed ? 0 : 1;
+        const relationCount = degree.get(entity.id) || 0;
+        const html = `
+          <g class="graph-node layer-${entity.layer || "x"} ${selected ? "selected" : ""} ${related ? "related" : ""} ${indirect ? "indirect" : ""} ${dimmed ? "dimmed" : ""}" data-graph-entity="${index}" transform="translate(${pos.x.toFixed(1)} ${pos.y.toFixed(1)})">
+            <title>${escapeHtml(label)} · ${escapeHtml(entity.id)} · ${relationCount} 条关系</title>
+            <circle r="${radius.toFixed(1)}"></circle>
+            <text class="graph-label" y="-5">${escapeHtml(clippedLabel)}</text>
+            <text class="graph-label-sub" y="12">${escapeHtml(shortId)}</text>
+          </g>
+        `;
+        return { priority, html };
+      }).sort((a, b) => a.priority - b.priority).map(item => item.html).join("");
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = `
+        <defs>
+          <marker id="graph-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#9daaa6"></path>
+          </marker>
+        </defs>
+        <g id="graphViewport" transform="${transform}">
+          <g>${linkMarkup}</g>
+          <g>${nodeMarkup}</g>
+        </g>
+      `;
+      bindGraphSvg(svg);
+    }
+
+    function renderGraphInspector() {
+      const title = document.querySelector("#graphInspectorTitle");
+      const subtitle = document.querySelector("#graphInspectorSubtitle");
+      const body = document.querySelector("#graphInspectorBody");
+      if (!title || !subtitle || !body) return;
+      const listName = graphState.selectedType === "relation" ? "relations" : "entities";
+      const index = graphState.selectedIndex;
+      const record = data.model[listName]?.[index];
+      if (!record) {
+        title.textContent = "未选择";
+        subtitle.textContent = "点击图中的实体或关系进行编辑";
+        body.innerHTML = `<div class="graph-empty">暂无可编辑对象。</div>`;
+        return;
+      }
+      title.textContent = graphState.selectedType === "relation" ? (record.label_zh || "关系") : (record.label_zh || "实体");
+      subtitle.textContent = graphState.selectedType === "relation" ? `${record.source_class} → ${record.target_class}` : record.id;
+      body.innerHTML = modelSchemas[listName].map(field => renderGraphField(listName, index, record, field)).join("");
+    }
+
+    function renderGraphField(listName, index, record, field) {
+      const [key, label, type, hint] = field;
+      const value = record[key];
+      const common = `data-graph-list="${listName}" data-graph-index="${index}" data-graph-key="${key}"`;
+      if (type === "textarea") {
+        return `<label class="field">${escapeHtml(label)}<textarea ${common} placeholder="${escapeHtml(hint)}">${escapeHtml(value || "")}</textarea></label>`;
+      }
+      if (type === "boolean") {
+        return `<label class="field">${escapeHtml(label)}<select ${common}><option value="false" ${value === false || value === "false" || value === undefined ? "selected" : ""}>false</option><option value="true" ${value === true || value === "true" ? "selected" : ""}>true</option></select></label>`;
+      }
+      if (type === "layer") {
+        return `<label class="field">${escapeHtml(label)}<select ${common}><option value="" ${value === "" || value === undefined || value === null ? "selected" : ""}>不确定</option><option value="2" ${Number(value) === 2 ? "selected" : ""}>2 行业级别</option><option value="3" ${Number(value) === 3 ? "selected" : ""}>3 企业级别</option></select></label>`;
+      }
+      if (type === "dataType") {
+        return `<label class="field">${escapeHtml(label)}<select ${common}>${["STRING", "INTEGER", "FLOAT", "BOOLEAN", "DATE", "DATETIME", "TEXT"].map(option => `<option value="${option}" ${value === option ? "selected" : ""}>${option}</option>`).join("")}</select></label>`;
+      }
+      if (type === "cardinality") {
+        return `<label class="field">${escapeHtml(label)}<select ${common}>${["ONE_TO_ONE", "ONE_TO_MANY", "MANY_TO_MANY", "MANY_TO_ONE"].map(option => `<option value="${option}" ${value === option ? "selected" : ""}>${option}</option>`).join("")}</select></label>`;
+      }
+      if (type === "fixed") {
+        return `<label class="field">${escapeHtml(label)}<input ${common} value="" disabled placeholder="${escapeHtml(hint)}" /></label>`;
+      }
+      if (type === "null") {
+        return `<label class="field">${escapeHtml(label)}<input ${common} value="null" disabled placeholder="${escapeHtml(hint)}" /></label>`;
+      }
+      return `<label class="field">${escapeHtml(label)}<input ${common} value="${escapeHtml(value === null || value === undefined ? "" : value)}" placeholder="${escapeHtml(hint)}" /></label>`;
+    }
+
+    function bindGraphSvg(svg) {
+      if (svg.dataset.graphBound === "true") return;
+      svg.dataset.graphBound = "true";
+      svg.addEventListener("wheel", event => {
+        event.preventDefault();
+        const factor = event.deltaY < 0 ? 1.12 : 0.89;
+        zoomGraph(factor, event);
+      }, { passive: false });
+      svg.addEventListener("pointerdown", event => {
+        const node = event.target.closest?.(".graph-node");
+        const link = event.target.closest?.(".graph-link");
+        const point = getGraphPoint(svg, event);
+        if (node) {
+          graphState.selectedType = "entity";
+          graphState.selectedIndex = Number(node.dataset.graphEntity);
+          const entity = data.model.entities[graphState.selectedIndex];
+          const current = getGraphLayout(svg.viewBox.baseVal.width || 960, svg.viewBox.baseVal.height || 680).positions.get(entity.id) || { x: point.worldX, y: point.worldY };
+          graphDrag = {
+            mode: "node",
+            entityId: entity.id,
+            offsetX: current.x - point.worldX,
+            offsetY: current.y - point.worldY
+          };
+          renderGraphInspector();
+          drawGraph();
+          return;
+        }
+        if (link) {
+          graphState.selectedType = "relation";
+          graphState.selectedIndex = Number(link.dataset.graphRelation);
+          graphDrag = null;
+          renderGraphInspector();
+          drawGraph();
+          return;
+        }
+        graphDrag = {
+          mode: "pan",
+          startClientX: event.clientX,
+          startClientY: event.clientY,
+          startX: graphState.x,
+          startY: graphState.y,
+          rectWidth: svg.getBoundingClientRect().width,
+          rectHeight: svg.getBoundingClientRect().height,
+          viewWidth: svg.viewBox.baseVal.width || 960,
+          viewHeight: svg.viewBox.baseVal.height || 620
+        };
+      });
+    }
+
+    function getGraphPoint(svg, event) {
+      const rect = svg.getBoundingClientRect();
+      const viewWidth = svg.viewBox.baseVal.width || rect.width || 960;
+      const viewHeight = svg.viewBox.baseVal.height || rect.height || 620;
+      const svgX = (event.clientX - rect.left) / Math.max(1, rect.width) * viewWidth;
+      const svgY = (event.clientY - rect.top) / Math.max(1, rect.height) * viewHeight;
+      return {
+        svgX,
+        svgY,
+        worldX: (svgX - graphState.x) / graphState.scale,
+        worldY: (svgY - graphState.y) / graphState.scale
+      };
+    }
+
+    function zoomGraph(factor, event) {
+      const svg = document.querySelector("#graphSvg");
+      if (!svg) return;
+      const point = event ? getGraphPoint(svg, event) : null;
+      const oldScale = graphState.scale;
+      const nextScale = Math.max(0.25, Math.min(3.2, oldScale * factor));
+      if (point) {
+        graphState.x = point.svgX - point.worldX * nextScale;
+        graphState.y = point.svgY - point.worldY * nextScale;
+      }
+      graphState.scale = nextScale;
+      drawGraph();
+    }
+
+    window.addEventListener("pointermove", event => {
+      if (!graphDrag || activeTab !== "graph") return;
+      const svg = document.querySelector("#graphSvg");
+      if (!svg) return;
+      if (graphDrag.mode === "pan") {
+        const dx = (event.clientX - graphDrag.startClientX) / Math.max(1, graphDrag.rectWidth) * graphDrag.viewWidth;
+        const dy = (event.clientY - graphDrag.startClientY) / Math.max(1, graphDrag.rectHeight) * graphDrag.viewHeight;
+        graphState.x = graphDrag.startX + dx;
+        graphState.y = graphDrag.startY + dy;
+        drawGraph();
+      }
+      if (graphDrag.mode === "node") {
+        const point = getGraphPoint(svg, event);
+        data.graphPositions ||= {};
+        data.graphPositions[graphDrag.entityId] = {
+          x: point.worldX + graphDrag.offsetX,
+          y: point.worldY + graphDrag.offsetY
+        };
+        drawGraph();
+      }
+    });
+
+    window.addEventListener("pointerup", () => {
+      if (graphDrag?.mode === "node") scheduleSave();
+      graphDrag = null;
+    });
+
+    function renderDecisions() {
+      document.querySelector("#decisionPanel").innerHTML = `
+        <div class="decision-grid">
+          ${data.decisions.map((decision, index) => `
+            <article class="decision-card">
+              <h3 contenteditable="true" data-decision="${index}" data-decision-field="title">${escapeHtml(decision.title)}</h3>
+              <div class="decision-body">
+                <div>
+                  <b contenteditable="true" data-decision="${index}" data-decision-field="leftTitle">${escapeHtml(decision.leftTitle)}</b>
+                  <p class="editable" contenteditable="true" data-decision="${index}" data-decision-field="left">${escapeHtml(decision.left)}</p>
+                </div>
+                <div>
+                  <b contenteditable="true" data-decision="${index}" data-decision-field="rightTitle">${escapeHtml(decision.rightTitle)}</b>
+                  <p class="editable" contenteditable="true" data-decision="${index}" data-decision-field="right">${escapeHtml(decision.right)}</p>
+                </div>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderChecklist() {
+      document.querySelector("#checklistPanel").innerHTML = `
+        <div class="checklist-grid">
+          ${data.checklist.map((group, groupIndex) => `
+            <section class="check-group">
+              <h3 contenteditable="true" data-check-group="${groupIndex}">${escapeHtml(group.title)}</h3>
+              ${group.items.map((item, itemIndex) => {
+                const key = `${groupIndex}-${itemIndex}`;
+                return `<label class="check-item">
+                  <input type="checkbox" data-check="${key}" ${data.checked[key] ? "checked" : ""} />
+                  <span contenteditable="true" data-check-text="${key}">${escapeHtml(item)}</span>
+                </label>`;
+              }).join("")}
+            </section>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderTemplate() {
+      const t = data.template;
+      document.querySelector("#templatePanel").innerHTML = `
+        <div class="templates">
+          <form class="template-form" id="templateForm">
+            <label class="field">对象类型
+              <select data-template="type">
+                ${["Class", "ObjectProperty", "DatatypeProperty", "ConceptScheme"].map(type => `<option ${t.type === type ? "selected" : ""}>${type}</option>`).join("")}
+              </select>
+            </label>
+            <label class="field">ID
+              <input data-template="id" value="${escapeHtml(t.id)}" />
+            </label>
+            <div class="config-grid">
+              <label class="field">中文标签
+                <input data-template="zh" value="${escapeHtml(t.zh)}" />
+              </label>
+              <label class="field">英文标签
+                <input data-template="en" value="${escapeHtml(t.en)}" />
+              </label>
+            </div>
+            <label class="field">定义
+              <textarea data-template="definition">${escapeHtml(t.definition)}</textarea>
+            </label>
+            <div class="config-grid">
+              <label class="field">Parent / Domain
+                <input data-template="parent" value="${escapeHtml(t.parent)}" />
+              </label>
+              <label class="field">Range / Datatype
+                <input data-template="range" value="${escapeHtml(t.range)}" />
+              </label>
+            </div>
+            <label class="field">示例
+              <textarea data-template="example">${escapeHtml(t.example)}</textarea>
+            </label>
+            <button type="button" id="copyTemplateBtn" class="primary">复制模板结果</button>
+          </form>
+          <textarea id="templateOutput" class="template-output" spellcheck="false"></textarea>
+        </div>
+      `;
+      updateTemplateOutput();
+    }
+
+    function updateTemplateOutput() {
+      const output = document.querySelector("#templateOutput");
+      if (!output) return;
+      const t = data.template;
+      const base = {
+        id: t.id,
+        prefLabel: { zh: t.zh, en: t.en },
+        definition: t.definition,
+        layer: data.config.layer.includes("L3") ? "L3" : data.config.layer.includes("L1") ? "L1" : "L2",
+        status: data.config.status,
+        owner: data.config.owner,
+        example: t.example
+      };
+      if (t.type === "Class") {
+        output.value = JSON.stringify({ type: "Class", ...base, parent: t.parent || "Customer" }, null, 2);
+      } else if (t.type === "ObjectProperty") {
+        output.value = JSON.stringify({
+          type: "ObjectProperty",
+          id: t.id,
+          prefLabel: { zh: t.zh, en: t.en },
+          definition: t.definition,
+          domain: t.parent || t.domain || "LuxuryCustomer",
+          range: t.range || "ClientAdvisor",
+          layer: base.layer,
+          status: base.status,
+          owner: base.owner
+        }, null, 2);
+      } else if (t.type === "DatatypeProperty") {
+        output.value = JSON.stringify({
+          type: "DatatypeProperty",
+          id: t.id,
+          prefLabel: { zh: t.zh, en: t.en },
+          definition: t.definition,
+          domain: t.parent || "LuxuryCustomer",
+          datatype: t.datatype || "string",
+          layer: base.layer,
+          status: base.status,
+          owner: base.owner
+        }, null, 2);
+      } else {
+        output.value = JSON.stringify({
+          type: "ConceptScheme",
+          id: t.id,
+          prefLabel: { zh: t.zh, en: t.en },
+          definition: t.definition,
+          concepts: [
+            { id: "DiamondTier", prefLabel: { zh: "钻石客户", en: "Diamond" }, definition: "年消费超过500万元" },
+            { id: "PlatinumTier", prefLabel: { zh: "白金客户", en: "Platinum" }, definition: "年消费100万-500万元" }
+          ],
+          layer: base.layer,
+          status: base.status,
+          owner: base.owner
+        }, null, 2);
+      }
+    }
+
+    function updateMetrics() {
+      document.querySelector("#sectionCount").textContent = data.model.entities.length;
+      const total = data.checklist.reduce((sum, group) => sum + group.items.length, 0);
+      const done = Object.values(data.checked).filter(Boolean).length;
+      document.querySelector("#checkProgress").textContent = total ? `${Math.round(done / total * 100)}%` : "0%";
+      document.querySelector("#lastSaved").textContent = localStorage.getItem(STORAGE_KEY) ? "已保存" : "默认";
+    }
+
+    function updateProjectLabel() {
+      document.querySelector("#projectLabel").textContent = `${data.config.domain || "未设置行业"} · ${data.config.layer || "未设置层级"} · ${data.config.status || "draft"}`;
+    }
+
+    function scheduleSave() {
+      document.querySelector("#saveState").textContent = "正在编辑，稍后自动保存...";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveNow, 450);
+    }
+
+    function saveNow() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      document.querySelector("#saveState").textContent = "已自动保存到本地浏览器";
+      updateMetrics();
+      updateProjectLabel();
+    }
+
+    function showToast(message) {
+      const toast = document.querySelector("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function getCurrentSection() {
+      return data.sections.find(section => section.id === currentSection) || data.sections[0];
+    }
+
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function createModelRecord(listName) {
+      if (listName === "entities") {
+        return {
+          id: "new_entity",
+          label_zh: "新实体",
+          label_en: "New Entity",
+          parent: null,
+          layer: "",
+          abstract: false,
+          description: "",
+          alias: "",
+          owner: "",
+          business_domain: data.config.domain ? toSnakeCase(data.config.domain) : ""
+        };
+      }
+      if (listName === "attributes") {
+        return {
+          id: "new_attribute",
+          label_zh: "新属性",
+          label_en: "New Attribute",
+          owned_class: data.model.entities[0]?.id || "",
+          derived_from: data.model.entities[0]?.id || "",
+          description: "",
+          alias: "",
+          data_type: "STRING",
+          required: false,
+          unique: false,
+          enum_values: "",
+          unit: "",
+          nullable: true,
+          sample_value: ""
+        };
+      }
+      return {
+        id: "new_relation",
+        label_zh: "新关系",
+        label_en: "New Relation",
+        layer: "",
+        parent: null,
+        abstract: false,
+        description: "",
+        alias: "",
+        cardinality: "ONE_TO_MANY",
+        source_class: data.model.entities[0]?.id || "",
+        target_class: data.model.entities[1]?.id || data.model.entities[0]?.id || "",
+        business_domain: data.config.domain ? toSnakeCase(data.config.domain) : "",
+        source_class_attribute: "",
+        target_class_attribute: ""
+      };
+    }
+
+    function toSnakeCase(value) {
+      return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+
+    function normalizeModelValue(type, key, value) {
+      if (type === "fixed") return "";
+      if (type === "null") return null;
+      if (type === "boolean") return value === true || value === "true";
+      if (type === "layer") return value === "" || value === undefined || value === null ? "" : Number(value);
+      if (key === "parent") return value === "" || value === undefined || value === null ? null : String(value);
+      return value === undefined || value === null ? "" : String(value);
+    }
+
+    function normalizeModelRecord(listName, record) {
+      const normalized = {};
+      modelSchemas[listName].forEach(([key, , type]) => {
+        normalized[key] = normalizeModelValue(type, key, record[key]);
+      });
+      return normalized;
+    }
+
+    function renameEntityReferences(oldId, newId) {
+      if (!oldId || !newId) return;
+      data.model.entities.forEach(entity => {
+        if (entity.parent === oldId) entity.parent = newId;
+      });
+      data.model.attributes.forEach(attribute => {
+        if (attribute.owned_class === oldId) attribute.owned_class = newId;
+        if (attribute.derived_from === oldId) attribute.derived_from = newId;
+      });
+      data.model.relations.forEach(relation => {
+        if (relation.source_class === oldId) relation.source_class = newId;
+        if (relation.target_class === oldId) relation.target_class = newId;
+      });
+      if (data.graphPositions?.[oldId]) {
+        data.graphPositions[newId] = data.graphPositions[oldId];
+        delete data.graphPositions[oldId];
+      }
+    }
+
+    function getOntologyJson() {
+      return {
+        entities: (data.model.entities || []).map(record => normalizeModelRecord("entities", record)),
+        attributes: (data.model.attributes || []).map(record => normalizeModelRecord("attributes", record)),
+        relations: (data.model.relations || []).map(record => normalizeModelRecord("relations", record))
+      };
+    }
+
+    function updateModelPreview() {
+      const preview = document.querySelector("#modelJsonPreview");
+      if (preview) preview.value = JSON.stringify(getOntologyJson(), null, 2);
+    }
+
+    function toMarkdown() {
+      const lines = [`# ${data.title}`, "", data.subtitle, "", data.goal, "", "## 项目配置"];
+      Object.entries(data.config).forEach(([key, value]) => lines.push(`- ${key}: ${value || ""}`));
+      data.sections.forEach(section => {
+        lines.push("", `## ${section.title}`);
+        section.blocks.forEach(block => {
+          if (block.type === "heading") lines.push("", `### ${block.text}`);
+          if (block.type === "paragraph" || block.type === "note") lines.push("", block.text);
+          if (block.type === "workflow") block.steps.forEach((step, index) => lines.push(`${index + 1}. ${step[0]}：${step[1]}`));
+          if (block.type === "table") {
+            const rows = block.rows || [];
+            if (rows.length) {
+              lines.push("", `| ${rows[0].join(" | ")} |`);
+              lines.push(`| ${rows[0].map(() => "---").join(" | ")} |`);
+              rows.slice(1).forEach(row => lines.push(`| ${row.join(" | ")} |`));
+            }
+          }
+        });
+      });
+      lines.push("", "## 质量检查清单");
+      data.checklist.forEach((group, groupIndex) => {
+        lines.push("", `### ${group.title}`);
+        group.items.forEach((item, itemIndex) => {
+          const mark = data.checked[`${groupIndex}-${itemIndex}`] ? "x" : " ";
+          lines.push(`- [${mark}] ${item}`);
+        });
+      });
+      return lines.join("\n");
+    }
+
+    function exportHtml() {
+      const exported = document.documentElement.outerHTML.replace(
+        /const defaultData = [\s\S]*?;\n\n    let data = loadData\(\);/,
+        `const defaultData = ${JSON.stringify(data, null, 6)};\n\n    let data = loadData();`
+      );
+      download("ontology-principles-editor-custom.html", exported, "text/html;charset=utf-8");
+    }
+
+    document.addEventListener("input", event => {
+      const target = event.target;
+      if (target.matches("[data-bind]")) {
+        data[target.dataset.bind] = target.textContent.trim();
+      }
+      if (target.matches("[data-config]")) {
+        data.config[target.dataset.config] = target.value;
+        updateTemplateOutput();
+      }
+      if (target.matches("[data-template]")) {
+        data.template[target.dataset.template] = target.value;
+        updateTemplateOutput();
+      }
+      if (target.matches("[data-model-list]")) {
+        const record = data.model[target.dataset.modelList][Number(target.dataset.modelIndex)];
+        const schema = modelSchemas[target.dataset.modelList].find(([key]) => key === target.dataset.modelKey);
+        const type = schema?.[2] || "text";
+        if (type === "boolean") {
+          record[target.dataset.modelKey] = target.value === "true";
+        } else if (type === "layer") {
+          record[target.dataset.modelKey] = target.value === "" ? "" : Number(target.value);
+        } else if (type !== "fixed" && type !== "null") {
+          record[target.dataset.modelKey] = target.value;
+        }
+        updateModelPreview();
+      }
+      if (target.matches("[data-graph-list]")) {
+        const listName = target.dataset.graphList;
+        const record = data.model[listName][Number(target.dataset.graphIndex)];
+        const key = target.dataset.graphKey;
+        const schema = modelSchemas[listName].find(([fieldKey]) => fieldKey === key);
+        const type = schema?.[2] || "text";
+        const oldId = record.id;
+        let nextValue = target.value;
+        if (type === "boolean") nextValue = target.value === "true";
+        if (type === "layer") nextValue = target.value === "" ? "" : Number(target.value);
+        if (type !== "fixed" && type !== "null") record[key] = nextValue;
+        if (listName === "entities" && key === "id" && oldId && oldId !== record.id) {
+          renameEntityReferences(oldId, record.id);
+        }
+        updateModelPreview();
+        drawGraph();
+        scheduleSave();
+      }
+      if (target.matches("#graphSearch")) {
+        graphState.query = target.value;
+        drawGraph();
+      }
+      if (target.matches("[data-section-title]")) {
+        getCurrentSection().title = target.textContent.trim() || "未命名章节";
+        renderNav();
+      }
+      if (target.matches("[data-block][data-field]")) {
+        const section = getCurrentSection();
+        section.blocks[Number(target.dataset.block)][target.dataset.field] = target.textContent.trim();
+      }
+      if (target.matches("[data-row][data-cell]")) {
+        const tableRoot = target.closest("[data-block]");
+        const section = getCurrentSection();
+        const block = section.blocks[Number(tableRoot.dataset.block)];
+        block.rows[Number(target.dataset.row)][Number(target.dataset.cell)] = target.textContent.trim();
+      }
+      if (target.matches("[data-step]")) {
+        const workflowRoot = target.closest("[data-block]");
+        const block = getCurrentSection().blocks[Number(workflowRoot.dataset.block)];
+        block.steps[Number(target.dataset.step)][Number(target.dataset.stepField)] = target.textContent.trim();
+      }
+      if (target.matches("[data-decision]")) {
+        const decision = data.decisions[Number(target.dataset.decision)];
+        decision[target.dataset.decisionField] = target.textContent.trim();
+      }
+      if (target.matches("[data-check-group]")) {
+        data.checklist[Number(target.dataset.checkGroup)].title = target.textContent.trim();
+      }
+      if (target.matches("[data-check-text]")) {
+        const [groupIndex, itemIndex] = target.dataset.checkText.split("-").map(Number);
+        data.checklist[groupIndex].items[itemIndex] = target.textContent.trim();
+      }
+      scheduleSave();
+    });
+
+    document.addEventListener("change", event => {
+      const target = event.target;
+      if (target.matches("[data-check]")) {
+        data.checked[target.dataset.check] = target.checked;
+        updateMetrics();
+        scheduleSave();
+      }
+      if (target.matches("#graphShowLabels")) {
+        graphState.showLabels = target.checked;
+        drawGraph();
+      }
+      if (target.matches("[data-config]") || target.matches("[data-template]") || target.matches("[data-model-list]")) {
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (target.matches("[data-graph-list]")) {
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+
+    document.addEventListener("click", event => {
+      const target = event.target.closest("button");
+      if (!target) return;
+
+      if (target.dataset.nav) {
+        activeTab = "content";
+        currentSection = target.dataset.nav;
+        renderAll();
+      }
+      if (target.dataset.sideTab) {
+        activeTab = target.dataset.sideTab;
+        renderTabs();
+        renderActivePanel();
+      }
+      if (target.dataset.tab) {
+        activeTab = target.dataset.tab;
+        renderTabs();
+        renderActivePanel();
+      }
+      if (target.dataset.graphZoom === "in") {
+        zoomGraph(1.18);
+      }
+      if (target.dataset.graphZoom === "out") {
+        zoomGraph(0.84);
+      }
+      if (target.dataset.graphReset !== undefined) {
+        graphState.x = 0;
+        graphState.y = 0;
+        graphState.scale = 1;
+        drawGraph();
+      }
+      if (target.dataset.addBlock) {
+        const section = getCurrentSection();
+        if (target.dataset.addBlock === "table") {
+          section.blocks.push({ type: "table", rows: [["字段", "说明"], ["", ""]] });
+        } else {
+          section.blocks.push({ type: "paragraph", text: "点击编辑新增内容。" });
+        }
+        renderContent();
+        scheduleSave();
+      }
+      if (target.dataset.addRow) {
+        const block = getCurrentSection().blocks[Number(target.dataset.addRow)];
+        const cols = block.rows[0]?.length || 2;
+        block.rows.push(Array.from({ length: cols }, () => ""));
+        renderContent();
+        scheduleSave();
+      }
+      if (target.dataset.addCol) {
+        const block = getCurrentSection().blocks[Number(target.dataset.addCol)];
+        block.rows.forEach(row => row.push(""));
+        renderContent();
+        scheduleSave();
+      }
+      if (target.dataset.deleteBlock) {
+        getCurrentSection().blocks.splice(Number(target.dataset.deleteBlock), 1);
+        renderContent();
+        scheduleSave();
+      }
+      if (target.dataset.addModel) {
+        data.model[target.dataset.addModel].push(createModelRecord(target.dataset.addModel));
+        if (activeTab === "graph") {
+          graphState.selectedType = target.dataset.addModel === "relations" ? "relation" : "entity";
+          graphState.selectedIndex = data.model[target.dataset.addModel].length - 1;
+          renderGraph();
+        } else {
+          renderModel();
+        }
+        scheduleSave();
+      }
+      if (target.dataset.removeModel) {
+        data.model[target.dataset.removeModel].splice(Number(target.dataset.removeIndex), 1);
+        if (activeTab === "graph") {
+          ensureGraphSelection();
+          renderGraph();
+        } else {
+          renderModel();
+        }
+        scheduleSave();
+      }
+    });
+
+    document.querySelector("#saveBtn").addEventListener("click", () => {
+      saveNow();
+      showToast("已保存到本地浏览器。");
+    });
+
+    document.querySelector("#resetBtn").addEventListener("click", () => {
+      if (!confirm("确定恢复默认规范内容？当前本地修改会被覆盖。")) return;
+      data = clone(defaultData);
+      currentSection = data.sections[0].id;
+      localStorage.removeItem(STORAGE_KEY);
+      renderAll();
+      showToast("已恢复默认内容。");
+    });
+
+    document.querySelector("#importBtn").addEventListener("click", () => {
+      document.querySelector("#fileInput").click();
+    });
+
+    document.querySelector("#fileInput").addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        data = mergeDefaults(clone(defaultData), JSON.parse(await file.text()));
+        currentSection = data.sections[0]?.id || "";
+        renderAll();
+        saveNow();
+        showToast("JSON 已导入。");
+      } catch (error) {
+        showToast("导入失败：JSON 格式不正确。");
+      } finally {
+        event.target.value = "";
+      }
+    });
+
+    document.querySelector("#printBtn").addEventListener("click", () => window.print());
+
+    document.querySelector("#exportJsonBtn").addEventListener("click", () => {
+      download("ontology-model.json", JSON.stringify(getOntologyJson(), null, 2), "application/json;charset=utf-8");
+    });
+
+    document.querySelector("#exportMdBtn").addEventListener("click", () => {
+      download("ontology-principles.md", toMarkdown(), "text/markdown;charset=utf-8");
+    });
+
+    document.querySelector("#exportHtmlBtn").addEventListener("click", exportHtml);
+
+    document.addEventListener("click", async event => {
+      if (event.target?.id === "copyTemplateBtn") {
+        const output = document.querySelector("#templateOutput").value;
+        try {
+          await navigator.clipboard.writeText(output);
+          showToast("模板结果已复制。");
+        } catch (error) {
+          document.querySelector("#templateOutput").select();
+          showToast("已选中模板结果，可直接复制。");
+        }
+      }
+      if (event.target?.id === "copyModelJsonBtn") {
+        const output = JSON.stringify(getOntologyJson(), null, 2);
+        try {
+          await navigator.clipboard.writeText(output);
+          showToast("模型 JSON 已复制。");
+        } catch (error) {
+          const preview = document.querySelector("#modelJsonPreview");
+          preview?.select();
+          showToast("已选中模型 JSON，可直接复制。");
+        }
+      }
+    });
+
+    renderAll();
+  </script>
+
+
+</body></html>
